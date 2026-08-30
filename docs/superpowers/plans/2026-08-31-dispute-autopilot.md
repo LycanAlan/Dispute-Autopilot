@@ -1544,7 +1544,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from dispute_autopilot.config import load_costs
+from dispute_autopilot.config import CostConfig, load_costs
 
 
 @dataclass
@@ -1564,7 +1564,10 @@ class RupeeMatrix:
 
 
 def rupee_confusion(
-    y_true: np.ndarray, y_pred: np.ndarray, amounts: np.ndarray
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    amounts: np.ndarray,
+    costs: CostConfig | None = None,
 ) -> RupeeMatrix:
     """
     TP: flagged and did charge back -> evidence vault existed, dispute defensible.
@@ -1574,8 +1577,12 @@ def rupee_confusion(
     TN: not flagged, not disputed -> zero.
     FN: not flagged but did charge back -> no vault, representment lost.
         Cost = full amount plus the contest fee we cannot recover.
+
+    `costs` lets a caller supply a variant config (e.g. the UI's fee slider) via
+    load_costs().model_copy(update={...}). CostConfig is frozen, so the shared
+    cached instance can never be mutated out from under other callers.
     """
-    costs = load_costs()
+    costs = costs or load_costs()
     posture = costs.posture_cost_inr["ACTIVE"]
     win = costs.base_win_rate_fraud_coded
 
@@ -1768,15 +1775,22 @@ Expected: FAIL, `ModuleNotFoundError`
 import numpy as np
 import pandas as pd
 
+from dispute_autopilot.config import CostConfig
 from dispute_autopilot.economics.cost_model import rupee_confusion
 
 
 def sweep(
-    y_true: np.ndarray, scores: np.ndarray, amounts: np.ndarray, n_steps: int = 100
+    y_true: np.ndarray,
+    scores: np.ndarray,
+    amounts: np.ndarray,
+    n_steps: int = 100,
+    costs: CostConfig | None = None,
 ) -> pd.DataFrame:
+    """`costs` threads a variant config through to rupee_confusion — used by the
+    UI's fee slider, which is the sensitivity analysis, not a decoration."""
     rows = []
     for t in np.linspace(0.001, 0.999, n_steps):
-        m = rupee_confusion(y_true, (scores >= t).astype(int), amounts)
+        m = rupee_confusion(y_true, (scores >= t).astype(int), amounts, costs=costs)
         rows.append({
             "threshold": float(t),
             "net_inr": m.net_inr,
@@ -1878,7 +1892,7 @@ value). Cited, not reinvented — see README Prior Art.
 METRIC FAMILY B (simulated). The win-probability model rests on the spec 8.1
 inference, which this dataset cannot validate.
 """
-from dispute_autopilot.config import ASSUMPTION_NOTICE, load_costs
+from dispute_autopilot.config import ASSUMPTION_NOTICE, CostConfig, load_costs
 from dispute_autopilot.contracts import Action, Decision, Dispute
 
 
@@ -1894,9 +1908,13 @@ def _lift(p: float, clip: tuple[float, float]) -> float:
 
 
 def decide(
-    dispute: Dispute, p_chargeback: float, w: float, missing_required: list[str]
+    dispute: Dispute,
+    p_chargeback: float,
+    w: float,
+    missing_required: list[str],
+    costs: CostConfig | None = None,
 ) -> Decision:
-    costs = load_costs()
+    costs = costs or load_costs()
 
     p_win = min(1.0, costs.base_win_rate_fraud_coded * _lift(p_chargeback, costs.lift_clip) * w)
     delta_ev = (
@@ -3478,18 +3496,15 @@ with tab_econ:
     sample = data.head(2000)
     p = scorer.score_batch(sample)
 
-    # rupee_confusion reads the cached CostConfig singleton, so the slider has to
-    # override it in place. Restore in a finally block: without that, the override
-    # leaks into the Triage tab and its decisions silently stop matching costs.yaml.
-    costs = load_costs()
-    original_fee = costs.contest_fee_inr
-    try:
-        costs.contest_fee_inr = float(fee)
-        sweep_df = sweep(sample["isFraud"].to_numpy(), p,
-                         sample["TransactionAmt"].to_numpy(dtype=float), n_steps=60)
-        best = optimal_threshold(sweep_df)
-    finally:
-        costs.contest_fee_inr = original_fee
+    # CostConfig is frozen, so the slider builds a variant and threads it through
+    # rather than mutating the shared cached instance. An in-place override would
+    # leak into the Triage tab and make its decisions silently disagree with
+    # costs.yaml — which is exactly the bug this design removes.
+    variant = load_costs().model_copy(update={"contest_fee_inr": float(fee)})
+    sweep_df = sweep(sample["isFraud"].to_numpy(), p,
+                     sample["TransactionAmt"].to_numpy(dtype=float),
+                     n_steps=60, costs=variant)
+    best = optimal_threshold(sweep_df)
 
     st.line_chart(sweep_df.set_index("threshold")["net_inr"])
     st.metric("EV-optimal threshold", f"{best:.3f}")

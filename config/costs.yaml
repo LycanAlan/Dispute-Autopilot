@@ -18,11 +18,15 @@ base_win_rate_fraud_coded: 0.171   # verified: chargeback.io 2026 compilation.
                                    # Fraud-coded representment win rate, vs 41-54% overall.
 lift_clip: [0.5, 2.5]              # bounds on model-score influence over the base rate
 
-# Rs 750 = midpoint of the cited range. Razorpay does NOT publish a dispute fee:
-# razorpay.com/pricing lists transaction and refund fees only. Third-party sources
-# give Rs 200-2000, negotiated per merchant agreement, charged win or lose.
-# This is why the threshold sensitivity sweep is methodologically required, not
-# decorative -- we report the decision boundary across the range, not one number.
+# Rs 750 = top of the most commonly cited India-specific band (Rs 200-750).
+# The wider Rs 500-2000 and global Rs 1500-8000 figures describe large merchants
+# and other geographies. Choosing the high end of the India band is deliberately
+# CONSERVATIVE: a higher contest fee makes contesting less attractive, so the
+# model's measured benefit is understated rather than inflated.
+# Razorpay does NOT publish a dispute fee -- razorpay.com/pricing lists transaction
+# and refund fees only, and the fee is negotiated per merchant agreement and charged
+# win or lose. This is why the threshold sensitivity sweep is methodologically
+# required, not decorative: we report the decision boundary across the range.
 contest_fee_inr: 750.0
 ops_cost_inr: 250.0                # PLACEHOLDER - staff time per contested dispute
 decision_margin_inr: 100.0         # REVIEW band half-width

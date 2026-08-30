@@ -462,11 +462,28 @@ git commit -m "feat: freeze data contracts for all stage boundaries"
 ```yaml
 currency: INR
 
-# Published priors. Sources are mandatory; see README Prior Art.
-base_win_rate_fraud_coded: 0.171   # Chargebacks911: fraud-coded representment win rate
+# Verified priors (checked 2026-08-31). Do not edit without re-checking sources.
+#   Fraud-coded representment win rate: 17.1%  (chargeback.io 2026)
+#   Overall representment win rate:     41-54% (source-dependent; Chargebacks911 says 54% US)
+#   Net recovery rate:                  10.7%  (merchants win 43.8% of what they
+#                                       represent but net-recover only 10.7% after
+#                                       second-cycle disputes and undetected friendly fraud)
+#   Total cost multiplier:              $5.13 per $1 of fraud loss (LexisNexis
+#                                       True Cost of Fraud 2026 -- NOT $4.61, which is 2025)
+#   First-party misuse share of chargebacks: 40-75%, source- and definition-dependent.
+#                                       DO NOT assert 43.8% -- that number appears in
+#                                       Chargebacks911 material as the representment WIN RATE,
+#                                       a different statistic. Cite the range only.
+base_win_rate_fraud_coded: 0.171   # verified: chargeback.io 2026 compilation.
+                                   # Fraud-coded representment win rate, vs 41-54% overall.
 lift_clip: [0.5, 2.5]              # bounds on model-score influence over the base rate
 
-contest_fee_inr: 1500.0            # PLACEHOLDER - replace from docs/gates/G2 finding
+# Rs 750 = midpoint of the cited range. Razorpay does NOT publish a dispute fee:
+# razorpay.com/pricing lists transaction and refund fees only. Third-party sources
+# give Rs 200-2000, negotiated per merchant agreement, charged win or lose.
+# This is why the threshold sensitivity sweep is methodologically required, not
+# decorative -- we report the decision boundary across the range, not one number.
+contest_fee_inr: 750.0
 ops_cost_inr: 250.0                # PLACEHOLDER - staff time per contested dispute
 decision_margin_inr: 100.0         # REVIEW band half-width
 
@@ -3453,7 +3470,11 @@ with tab_metrics:
 
 with tab_econ:
     st.header("The threshold is chosen by money, not by 0.5")
-    fee = st.slider("Contest fee (INR)", 0, 5000, 1500, 100)
+    # Default 750 matches costs.yaml. Razorpay publishes no dispute fee, so the
+    # slider is not a toy: it IS the sensitivity analysis. Cited range is Rs 200-2000.
+    fee = st.slider("Contest fee (INR)", 0, 3000, 750, 50)
+    st.caption("Razorpay does not publish a dispute fee. Cited third-party range: "
+               "Rs 200-2000, negotiated per merchant agreement, charged win or lose.")
     sample = data.head(2000)
     p = scorer.score_batch(sample)
 

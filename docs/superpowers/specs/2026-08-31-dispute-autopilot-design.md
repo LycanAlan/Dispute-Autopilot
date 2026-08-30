@@ -200,15 +200,24 @@ The clip on `lift` is deliberate: it prevents the model score, which was never v
 
 The weights are configuration, not learned parameters, and are documented as such.
 
-Priors, cited in `costs.yaml`, not invented:
+Priors, cited in `costs.yaml`, not invented. **Verified 2026-08-31 — do not edit without re-checking sources:**
 
-- Merchant win rate on **fraud-coded** chargebacks: **17.1%**
-- Win rate across all reason codes: 44.6% to 54%
-- Friendly fraud share of chargebacks: 43.8% (Chargebacks911 2026 Field Report); over 45% (Mastercard 2025)
-- Total cost multiplier: $4.61 per $1 of fraud loss (LexisNexis True Cost of Fraud 2025)
-- Razorpay dispute fee: **must be sourced on Day 0 and cited; a placeholder is used until then and marked as such**
+| Prior | Value | Source |
+|---|---|---|
+| Win rate on **fraud-coded** chargebacks | **17.1%** | chargeback.io 2026 compilation |
+| Win rate across all reason codes | 41–54% | Source-dependent; Chargebacks911 puts US at 54% |
+| **Net recovery rate** | **10.7%** | Merchants win 43.8% of what they represent but net-recover only 10.7% after second-cycle disputes and undetected friendly fraud |
+| Total cost multiplier | **$5.13** per $1 of fraud loss | LexisNexis True Cost of Fraud **2026** |
+| First-party misuse share of chargebacks | **40–75%**, a range | Source- and definition-dependent |
+| Razorpay dispute fee | ₹750 (midpoint of ₹200–2,000) | **Razorpay publishes no dispute fee.** See below. |
 
-At a 17.1% base win rate, blanket contesting loses money. "Do not fight this one" is frequently the correct answer, and a system willing to say so is more credible than one that always fights. This is the thesis.
+Three of these carry corrections worth stating explicitly, because each was wrong in an earlier draft and each would have been indefensible under questioning:
+
+- The cost multiplier is **$5.13 (2026)**, not $4.61 — that figure is the 2025 study.
+- **Never assert 43.8% as the first-party-misuse share.** That number appears in Chargebacks911 material as the *representment win rate*, a different statistic that happens to share a value. Cite the 40–75% range with its sources instead. A range that is defensible beats a precise number that is not.
+- **Razorpay does not publish a dispute fee.** Their pricing page carries transaction fees (2% domestic) and refund fees (₹0) and nothing for chargebacks; third-party figures scatter across ₹200–2,000 and the fee is negotiated per merchant agreement and charged win or lose. There is no true value to await, so `costs.yaml` must not label it a placeholder. This is precisely why the threshold sensitivity sweep and the UI fee slider are **methodologically required rather than decorative** — we report the decision boundary across the whole cited range rather than asserting one number.
+
+**The thesis, in its sharpest form:** merchants win 43.8% of the disputes they represent but keep only 10.7% of the money. At a 17.1% win rate on fraud-coded disputes specifically, blanket contesting loses money outright. "Do not fight this one" is frequently the correct answer, and a system willing to say so is more credible than one that always fights.
 
 **Assembler pipeline:**
 
@@ -347,8 +356,9 @@ The model gets 60 seconds at most. Economics, assembler and honesty get the rest
 | Timeline slips | Locked cut list; Sep 3 scope freeze; full buffer day |
 | Model resembles saturated repos | Not the differentiator; 60s of video; lead with the decision system |
 
-## 17. Open items requiring resolution on Day 0
+## 17. Open items
 
-1. Buildathon application deadline — unpublished on the site
-2. Razorpay dispute fee — must be sourced and cited, placeholder marked until then
-3. Gate G2 outcome — test-mode dispute availability
+1. **Buildathon application deadline** — unpublished on the site. OPEN; submit early regardless.
+2. ~~Razorpay dispute fee~~ — **RESOLVED 2026-08-31.** Razorpay publishes no dispute fee. Settled at ₹750 with the cited range documented in `costs.yaml`; see §8.2. The sensitivity sweep covers the full range, which is the correct treatment for a genuinely unpublished parameter.
+3. **Gate G2 outcome** — test-mode dispute availability. OPEN; requires the human partner's Razorpay login. The dry-run adapter ships either way.
+4. **LICENSE copyright holder** — currently "Dispute Autopilot Contributors". Requires the human partner's decision; an agent should not invent a person's legal name.

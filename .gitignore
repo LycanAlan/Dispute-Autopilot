@@ -1,0 +1,15 @@
+data/
+.env
+*.pkl
+*.joblib
+__pycache__/
+*.pyc
+.venv/
+venv/
+eval/reports/*.png
+!eval/reports/.gitkeep
+.ipynb_checkpoints/
+.pytest_cache/
+artifacts/
+*.egg-info/
+build/

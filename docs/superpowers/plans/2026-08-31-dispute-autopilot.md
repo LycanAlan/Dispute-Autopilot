@@ -1027,6 +1027,13 @@ Expected: FAIL, `ModuleNotFoundError`
 
 Do not write a second feature path. Task 2.2 enforces this with a parity test;
 train/serve skew is the failure mode a payments reviewer looks for first.
+
+CATEGORY STABILITY — the subtle half of that guarantee. LightGBM consumes a
+pandas category column's `.cat.codes`, not its values. If categories are inferred
+per call, a batch build and a single-row serve build assign DIFFERENT integers to
+the same value, and every live score is computed on wrong codes while every batch
+metric still looks correct. So the fitted category sets are captured at training
+time and passed back in at serving time. Never let serving infer its own.
 """
 import numpy as np
 import pandas as pd
@@ -1034,7 +1041,15 @@ import pandas as pd
 from dispute_autopilot.config import load_features
 
 
-def build_features(df: pd.DataFrame) -> pd.DataFrame:
+def build_features(
+    df: pd.DataFrame,
+    categories: dict[str, pd.CategoricalDtype] | None = None,
+) -> pd.DataFrame:
+    """`categories` None means fit (training); provided means apply (serving).
+
+    An unseen category at serve time becomes NaN, which is the correct and
+    honest encoding for a value the model never trained on.
+    """
     fc = load_features()
     out = pd.DataFrame(index=df.index)
 
@@ -1056,9 +1071,25 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
 
     for col in fc.categorical:
         series = df[col] if col in df else pd.Series([None] * len(df), index=df.index)
-        out[col] = series.astype("object").astype("category")
-
+        series = series.astype("object")
+        if categories is not None and col in categories:
+            out[col] = series.astype(categories[col])   # serving: fixed codes
+        else:
+            out[col] = series.astype("category")        # training: fit
     return out[fc.all_model_columns]
+
+
+def extract_categories(features: pd.DataFrame) -> dict[str, pd.CategoricalDtype]:
+    """Capture fitted category sets so serving reproduces identical codes.
+
+    Call this once on the TRAINING feature frame and persist the result beside
+    the model. Without it, serving silently re-derives its own codes.
+    """
+    fc = load_features()
+    return {
+        col: pd.CategoricalDtype(categories=features[col].cat.categories)
+        for col in fc.categorical
+    }
 ```
 
 - [ ] **Step 4: Run the tests**
@@ -1132,18 +1163,59 @@ If this ever fails, the serving path has drifted from training and every
 metric in the README is invalid.
 """
 import pandas as pd
-from dispute_autopilot.features.builder import build_features
+from dispute_autopilot.config import load_features
+from dispute_autopilot.features.builder import build_features, extract_categories
 
 
 def test_single_row_matches_batch_row(batch):
+    """Values agree between a batch build and a single-row serve build."""
     full = build_features(batch)
+    cats = extract_categories(full)
     for i in [0, 17, 49]:
-        single = build_features(batch.iloc[[i]])
+        single = build_features(batch.iloc[[i]], categories=cats)
         for col in full.columns:
             a, b = full[col].iloc[i], single[col].iloc[0]
             if pd.isna(a) and pd.isna(b):
                 continue
             assert a == b, f"train/serve skew in {col} at row {i}: {a} != {b}"
+
+
+def test_categorical_CODES_match_not_just_values(batch):
+    """LightGBM consumes .cat.codes, so codes are what must agree.
+
+    Comparing values alone is blind to category-set skew: the same string can
+    carry a different integer in a batch build than in a single-row build.
+    """
+    fc = load_features()
+    full = build_features(batch)
+    cats = extract_categories(full)
+    for i in [0, 17, 49]:
+        single = build_features(batch.iloc[[i]], categories=cats)
+        for col in fc.categorical:
+            assert full[col].cat.codes.iloc[i] == single[col].cat.codes.iloc[0], (
+                f"categorical code skew in {col} at row {i}"
+            )
+
+
+def test_the_parity_guard_can_actually_detect_code_skew(batch):
+    """Guard the guard.
+
+    Without fixed categories, per-call inference MUST produce divergent codes.
+    If this ever stops being true, the two tests above have gone vacuous and are
+    protecting nothing — which is exactly the failure this suite once shipped.
+    """
+    fc = load_features()
+    full = build_features(batch)
+    diverged = False
+    for i in [0, 17, 49]:
+        naive = build_features(batch.iloc[[i]])   # no categories -> re-inferred
+        for col in fc.categorical:
+            if full[col].cat.codes.iloc[i] != naive[col].cat.codes.iloc[0]:
+                diverged = True
+    assert diverged, (
+        "expected naive per-call category inference to diverge; if it does not, "
+        "the parity tests above are no longer testing anything"
+    )
 ```
 
 - [ ] **Step 3: Run it**
@@ -1245,7 +1317,23 @@ def save_model(booster: lgb.Booster, path: Path = ARTIFACTS / "model.txt") -> Pa
     path.parent.mkdir(parents=True, exist_ok=True)
     booster.save_model(str(path))
     return path
+
+
+def save_categories(
+    categories: dict, path: Path = ARTIFACTS / "categories.joblib"
+) -> Path:
+    """Persist the fitted category sets beside the model.
+
+    Serving MUST reuse these. LightGBM splits on .cat.codes, so a serving path
+    that re-infers its own categories scores against different integers than the
+    model was trained on — silently, with no error and no failing test.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(categories, path)
+    return path
 ```
+
+The model artifact is now a **pair**: `model.txt` and `categories.joblib`. Loading one without the other is a bug — `Scorer.load` in Task 3.3 loads both.
 
 - [ ] **Step 4: Run the test**
 
@@ -1434,16 +1522,21 @@ ARTIFACTS = Path("artifacts")
 class Scorer:
     booster: lgb.Booster
     calibrator: object
+    categories: dict[str, pd.CategoricalDtype] | None = None
 
     @classmethod
     def load(cls, artifacts: Path = ARTIFACTS) -> "Scorer":
         return cls(
             booster=lgb.Booster(model_file=str(artifacts / "model.txt")),
             calibrator=joblib.load(artifacts / "calibrator.joblib"),
+            categories=joblib.load(artifacts / "categories.joblib"),
         )
 
     def score_batch(self, df: pd.DataFrame) -> np.ndarray:
-        return apply_calibrator(self.calibrator, self.booster.predict(build_features(df)))
+        # categories MUST be threaded through. Scoring one row without them makes
+        # every categorical collapse to code 0, silently, with no error.
+        features = build_features(df, categories=self.categories)
+        return apply_calibrator(self.calibrator, self.booster.predict(features))
 
     def score_one(self, row: pd.DataFrame) -> RiskScore:
         if len(row) != 1:

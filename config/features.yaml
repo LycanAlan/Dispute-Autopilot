@@ -1,0 +1,34 @@
+target: isFraud
+id_column: TransactionID
+time_column: TransactionDT
+
+numeric:
+  - TransactionAmt
+  - dist1
+  - dist2
+  - C1
+  - C2
+  - C13
+  - C14
+  - D1
+  - D2
+  - D15
+
+categorical:
+  - ProductCD
+  - card4
+  - card6
+  - P_emaildomain
+  - R_emaildomain
+  - DeviceType
+  - M1
+  - M2
+  - M3
+  - M4
+  - M6
+
+engineered:
+  - amt_log
+  - amt_decimal
+  - hour_of_day
+  - email_domain_mismatch

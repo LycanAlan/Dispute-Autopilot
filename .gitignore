@@ -6,8 +6,9 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-eval/reports/*.png
-!eval/reports/.gitkeep
+# eval/reports/*.png is deliberately NOT ignored: the charts are
+# deliverables the README renders and a panel looks at. Model
+# artifacts (artifacts/, *.joblib) stay ignored -- those regenerate.
 .ipynb_checkpoints/
 .pytest_cache/
 artifacts/

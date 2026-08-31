@@ -2707,7 +2707,15 @@ git commit -m "feat: add Razorpay evidence schema validation"
 - Consumes: `CaseFile`, `Dispute`, `RAZORPAY_EVIDENCE_FIELDS`
 - Produces: `build_prompt(dispute, casefile) -> str`; `assemble(dispute, casefile, client=None) -> EvidenceBundle`
 
-The Anthropic call is isolated behind a `client` parameter so tests never hit the network.
+The LLM call is isolated behind a **provider seam** so tests never hit the network AND
+so the build does not hard-depend on one vendor's billing working. Three providers ship:
+Anthropic, OpenAI, and a deterministic template provider that needs no key at all and
+guarantees the demo runs. Task 6.3's groundedness verifier sits downstream of whichever
+one is used, which is what makes the choice a detail rather than a safety question.
+
+Note the honest cost of the template provider: with it, metric family C (measured
+generation quality) is trivially perfect and therefore says nothing. Family C needs a
+real LLM to mean anything.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2746,6 +2754,44 @@ def test_prompt_forbids_facts_not_in_the_vault():
     prompt = build_prompt(_d(), _cf()).lower()
     assert "only" in prompt
     assert "do not invent" in prompt or "never invent" in prompt
+
+
+def test_the_module_imports_with_no_llm_sdk_and_no_api_key(monkeypatch):
+    """A missing key must not make this module unimportable.
+
+    `import anthropic` / `import openai` at module scope would turn a billing
+    problem into a red test suite -- the failure `import kaggle` already caused.
+    """
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    from dispute_autopilot.assembler.assemble import assemble, default_provider
+
+    assert default_provider() is None
+    bundle = assemble(_d(), _cf())          # falls back to templates, no network
+    assert bundle.fields                    # and still produces a usable bundle
+
+
+def test_the_template_path_copies_vault_values_verbatim(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    from dispute_autopilot.assembler.assemble import assemble
+
+    bundle = assemble(_d(), _cf())
+    assert bundle.fields["billing_proof"] == "AVS match on name and postcode"
+    assert {c.source_field for c in bundle.claims} == {"avs_result", "carrier_tracking"}
+
+
+def test_a_stub_provider_is_used_when_supplied():
+    """The seam must actually be a seam: substitutable, and never touching the network."""
+    from dispute_autopilot.assembler.assemble import assemble
+
+    def stub(system, prompt, schema):
+        assert "AVS match on name and postcode" in prompt
+        return schema(fields={"billing_proof": "x"},
+                      claims=[{"text": "x", "source_field": "avs_result"}])
+
+    bundle = assemble(_d(), _cf(), provider=stub)
+    assert bundle.fields == {"billing_proof": "x"}
 
 
 def test_prompt_lists_the_available_source_keys():
@@ -2807,23 +2853,31 @@ def build_prompt(dispute: Dispute, casefile: CaseFile) -> str:
 .venv/Scripts/python -m pytest tests/test_assemble.py -v
 ```
 
-Expected: 3 passed
+Expected: 6 passed
 
 - [ ] **Step 5: Write `assemble.py`**
 
 ```python
-"""Evidence assembly via Claude structured output.
+"""Evidence assembly behind a provider seam.
 
-Model: claude-opus-5. Uses client.messages.parse() with a Pydantic output_format,
-which validates the response against the schema automatically.
+No LLM SDK is imported at module scope. Importing `anthropic` or `openai` at
+import time makes this module unimportable -- and the whole test suite red --
+on a machine with no key, which is the same class of bug that `import kaggle`
+caused in ingest/download.py. Each provider imports its own SDK inside itself.
 """
-import anthropic
+import os
+from typing import Callable
+
 from pydantic import BaseModel, Field
 
 from dispute_autopilot.assembler.prompts import SYSTEM, build_prompt
 from dispute_autopilot.contracts import CaseFile, Claim, Dispute, EvidenceBundle
 
-MODEL = "claude-opus-5"
+ANTHROPIC_MODEL = "claude-opus-5"
+OPENAI_MODEL = "gpt-4.1"
+
+# (system, prompt, schema) -> a validated instance of schema
+Provider = Callable[[str, str, type[BaseModel]], BaseModel]
 
 
 class _AssembledClaim(BaseModel):
@@ -2840,23 +2894,78 @@ class _AssembledBundle(BaseModel):
     )
 
 
-def assemble(
-    dispute: Dispute, casefile: CaseFile, client: anthropic.Anthropic | None = None
-) -> EvidenceBundle:
-    client = client or anthropic.Anthropic()
-    response = client.messages.parse(
-        model=MODEL,
+def anthropic_provider(system: str, prompt: str, schema: type[BaseModel]) -> BaseModel:
+    import anthropic  # inside: constructing a client requires credentials
+
+    response = anthropic.Anthropic().messages.parse(
+        model=ANTHROPIC_MODEL,
         max_tokens=16000,
-        system=SYSTEM,
-        messages=[{"role": "user", "content": build_prompt(dispute, casefile)}],
-        output_format=_AssembledBundle,
+        system=system,
+        messages=[{"role": "user", "content": prompt}],
+        output_format=schema,
     )
-    parsed = response.parsed_output
+    return response.parsed_output
+
+
+def openai_provider(system: str, prompt: str, schema: type[BaseModel]) -> BaseModel:
+    import openai
+
+    completion = openai.OpenAI().beta.chat.completions.parse(
+        model=OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": prompt},
+        ],
+        response_format=schema,
+    )
+    return completion.choices[0].message.parsed
+
+
+def default_provider() -> Provider | None:
+    """Whichever key is present, else None -> the deterministic path.
+
+    Checked in this order so a machine holding both keys uses Anthropic.
+    """
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return anthropic_provider
+    if os.getenv("OPENAI_API_KEY"):
+        return openai_provider
+    return None
+
+
+def assemble_deterministic(dispute: Dispute, casefile: CaseFile) -> EvidenceBundle:
+    """Template assembly. No network, no key, no possibility of hallucination.
+
+    Every value is copied verbatim from the vault, so groundedness is true by
+    construction rather than by verification. That makes it a safe fallback and
+    a useless benchmark: it cannot fail the family C metrics it would be scored
+    on. Do not report family C numbers produced by this path.
+    """
+    return EvidenceBundle(
+        dispute_id=dispute.dispute_id,
+        fields={field: item.value for field, item in sorted(casefile.items.items())},
+        claims=[
+            Claim(text=item.value, source_field=item.source)
+            for _, item in sorted(casefile.items.items())
+        ],
+    )
+
+
+def assemble(
+    dispute: Dispute,
+    casefile: CaseFile,
+    provider: Provider | None = None,
+) -> EvidenceBundle:
+    """`provider=None` resolves from the environment, then falls back to templates."""
+    provider = provider or default_provider()
+    if provider is None:
+        return assemble_deterministic(dispute, casefile)
+
+    parsed = provider(SYSTEM, build_prompt(dispute, casefile), _AssembledBundle)
     return EvidenceBundle(
         dispute_id=dispute.dispute_id,
         fields=parsed.fields,
-        claims=[Claim(text=c.text, source_field=c.source_field, grounded=False)
-                for c in parsed.claims],
+        claims=[Claim(text=c.text, source_field=c.source_field) for c in parsed.claims],
     )
 ```
 

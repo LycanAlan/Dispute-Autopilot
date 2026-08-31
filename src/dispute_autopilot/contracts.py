@@ -78,7 +78,3 @@ class Decision(BaseModel):
     # means the refusal gate fired and downgraded this decision to REVIEW: the
     # bundle is retained for a human to inspect, never transmitted.
     refused_claims: list[str] = Field(default_factory=list)
-    # Claims the groundedness verifier could not tie back to the vault. Non-empty
-    # means the refusal gate fired and downgraded this decision to REVIEW: the
-    # bundle is retained for a human to inspect, never transmitted.
-    refused_claims: list[str] = Field(default_factory=list)

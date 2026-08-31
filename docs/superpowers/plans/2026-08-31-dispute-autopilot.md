@@ -3322,7 +3322,7 @@ def test_contest_path_attaches_a_verified_bundle():
     assert result.action is Action.CONTEST
     assert result.bundle is not None
     assert result.bundle.claims[0].grounded is True
-```
+
 
 def test_a_fabricated_identifier_is_refused_and_never_contested():
     """The headline safety property: verification must change the outcome.
@@ -3355,7 +3355,7 @@ def test_asserting_fields_with_no_attributable_claims_is_refused():
     result = triage(_d(), _row(), _FakeScorer(0.01), _FakeVault(_full_cf()),
                     _unattributed)
     assert result.action is Action.REVIEW
-
+```
 
 - [ ] **Step 2: Run it to verify it fails**
 

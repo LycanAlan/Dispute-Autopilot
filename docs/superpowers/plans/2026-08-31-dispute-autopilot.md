@@ -2029,6 +2029,22 @@ def test_every_decision_carries_the_assumption_notice():
     assert "not validated" in result.assumption_notice.lower()
 
 
+def test_the_dispute_fee_does_not_enter_the_contest_accept_differential():
+    """The fee is charged win or lose, so it is identical under both branches.
+
+    If it creeps back into delta_ev, changing it will move the answer -- and
+    every low-value dispute silently tips toward ACCEPT.
+    """
+    from dispute_autopilot.config import load_costs
+
+    base = load_costs()
+    pricey = base.model_copy(update={"contest_fee_inr": 25_000.0})
+    a = decide(_d(), p_chargeback=0.3, w=1.0, missing_required=[])
+    b = decide(_d(), p_chargeback=0.3, w=1.0, missing_required=[], costs=pricey)
+    assert a.delta_ev_inr == b.delta_ev_inr
+    assert a.action is b.action
+
+
 def test_model_influence_is_clipped_against_the_published_base_rate():
     optimistic = decide(_d(), p_chargeback=0.0, w=1.0, missing_required=[])
     # base rate 0.171, max lift 2.5 -> p_win can never exceed 0.4275
@@ -2079,11 +2095,23 @@ def decide(
     costs = costs or load_costs()
 
     p_win = min(1.0, costs.base_win_rate_fraud_coded * _lift(p_chargeback, costs.lift_clip) * w)
-    delta_ev = (
-        p_win * dispute.amount_inr
-        - (1.0 - p_win) * costs.contest_fee_inr
-        - costs.ops_cost_inr
-    )
+
+    # delta_ev is CONTEST *relative to* ACCEPT, so only costs that differ
+    # between the two belong here.
+    #
+    # contest_fee_inr is deliberately ABSENT. config/costs.yaml documents it as
+    # charged win or lose once a dispute is raised, and cost_model.py subtracts
+    # it on both TP and FN for exactly that reason. A cost incurred identically
+    # under both branches cancels out of a differential; including it would bias
+    # every low-value dispute toward ACCEPT by roughly the fee.
+    #
+    # ops_cost_inr is the true marginal cost of contesting: staff time we spend
+    # only if we actually contest.
+    #
+    # If a merchant agreement adds a separate penalty for a LOST representment,
+    # that is a real term -- but it is a different, currently unsourced number
+    # and needs its own constant. Do not reuse contest_fee_inr for it.
+    delta_ev = p_win * dispute.amount_inr - costs.ops_cost_inr
 
     # The evidence gate is absolute. Economics never override it.
     if missing_required:
@@ -2113,7 +2141,7 @@ def decide(
 .venv/Scripts/python -m pytest tests/test_decision.py -v
 ```
 
-Expected: 5 passed
+Expected: 6 passed
 
 - [ ] **Step 5: Commit**
 

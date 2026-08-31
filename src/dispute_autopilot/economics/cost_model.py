@@ -34,7 +34,10 @@ def rupee_confusion(
 ) -> RupeeMatrix:
     """
     TP: flagged and did charge back -> evidence vault existed, dispute defensible.
-        Value = amount recovered at the published win rate, less posture cost.
+        Value = amount recovered at the published win rate, less posture cost and
+        the contest fee. config/costs.yaml documents contest_fee_inr as charged
+        win or lose, so it is subtracted here too -- not just on FN -- or TP
+        value would be overstated relative to what the constant itself says.
     FP: flagged but never disputed -> we paid for a vault nobody needed.
         Cost = posture cost only. A false positive is cheap; that is the point.
     TN: not flagged, not disputed -> zero.
@@ -59,7 +62,11 @@ def rupee_confusion(
     return RupeeMatrix(
         tp=int(tp_m.sum()), fp=int(fp_m.sum()),
         tn=int(tn_m.sum()), fn=int(fn_m.sum()),
-        tp_inr=float((amounts[tp_m] * win).sum() - tp_m.sum() * posture),
+        tp_inr=float(
+            (amounts[tp_m] * win).sum()
+            - tp_m.sum() * posture
+            - tp_m.sum() * costs.contest_fee_inr
+        ),
         fp_inr=float(-fp_m.sum() * posture),
         tn_inr=0.0,
         fn_inr=float(-(amounts[fn_m].sum() + fn_m.sum() * costs.contest_fee_inr)),

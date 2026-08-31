@@ -45,3 +45,9 @@ reason_codes:
     label: "Fraud - card absent environment"
     required: [billing_proof, shipping_proof]
     supporting: [customer_communication, access_activity_log, term_and_conditions]
+
+# Hand-written rules baseline. Reported alongside the model, so these thresholds
+# are part of the published methodology, not implementation detail.
+baseline_rules:
+  amount_inr: 10000.0
+  dist: 100.0

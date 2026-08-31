@@ -42,6 +42,13 @@ class Completeness(BaseModel):
     supporting_bonus: float
 
 
+class BaselineRules(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    amount_inr: float
+    dist: float
+
+
 class CostConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -54,6 +61,7 @@ class CostConfig(BaseModel):
     posture_cost_inr: dict[str, float]
     completeness: Completeness
     reason_codes: dict[str, ReasonCode]
+    baseline_rules: BaselineRules
 
 
 class FeatureConfig(BaseModel):

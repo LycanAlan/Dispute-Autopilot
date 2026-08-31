@@ -492,6 +492,12 @@ posture_cost_inr:
   PASSIVE: 12.0                    # PLACEHOLDER - storage/logging per transaction
   ACTIVE: 75.0                     # PLACEHOLDER - signature on delivery etc.
 
+# Hand-written rules baseline. Reported alongside the model, so these thresholds
+# are published methodology, not implementation detail. No magic numbers in code.
+baseline_rules:
+  amount_inr: 10000.0
+  dist: 100.0
+
 completeness:
   missing_required_penalty: 0.45   # multiplied per missing required field
   supporting_bonus: 1.08           # multiplied per present supporting field
@@ -576,17 +582,29 @@ Expected: FAIL, `ModuleNotFoundError: No module named 'dispute_autopilot.config'
 - [ ] **Step 5: Write `config.py`**
 
 ```python
-"""Typed configuration loaders. No magic numbers anywhere else in the codebase."""
+"""Typed configuration loaders. No magic numbers anywhere else in the codebase.
+
+The loaded models are FROZEN and lru_cached, so one shared instance is handed to
+every caller. Callers needing a variant MUST use
+`load_costs().model_copy(update={...})` — mutating the shared instance would
+silently corrupt every later caller for the process lifetime.
+
+Note the boundary: frozen=True blocks attribute reassignment, but does not
+deep-freeze nested `list[str]` fields, so `reason_codes[...].required.append(...)`
+is still possible. Documented rather than closed, since retyping to tuples is
+contract churn for a hazard no code here exhibits.
+"""
 from functools import lru_cache
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-CONFIG_DIR = Path("config")
+# Module-relative, NOT cwd-relative: this must resolve from any working directory.
+CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 
 ASSUMPTION_NOTICE = (
-    "Contest recommendations rest on an inference that is NOT validated by this "
+    "Contest recommendations rest on an inference that is not validated by this "
     "dataset: a transaction scored as low chargeback risk that is nevertheless "
     "charged back is treated as more likely to be first-party misuse. IEEE-CIS "
     "cannot separate first-party misuse from third-party fraud, so this is "
@@ -595,17 +613,30 @@ ASSUMPTION_NOTICE = (
 
 
 class ReasonCode(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     label: str
     required: list[str]
     supporting: list[str]
 
 
 class Completeness(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     missing_required_penalty: float
     supporting_bonus: float
 
 
+class BaselineRules(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    amount_inr: float
+    dist: float
+
+
 class CostConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     currency: str
     base_win_rate_fraud_coded: float
     lift_clip: tuple[float, float]
@@ -613,11 +644,14 @@ class CostConfig(BaseModel):
     ops_cost_inr: float
     decision_margin_inr: float
     posture_cost_inr: dict[str, float]
+    baseline_rules: BaselineRules
     completeness: Completeness
     reason_codes: dict[str, ReasonCode]
 
 
 class FeatureConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     target: str
     id_column: str
     time_column: str
@@ -1664,7 +1698,10 @@ def rupee_confusion(
 ) -> RupeeMatrix:
     """
     TP: flagged and did charge back -> evidence vault existed, dispute defensible.
-        Value = amount recovered at the published win rate, less posture cost.
+        Value = amount recovered at the published win rate, less posture cost,
+        LESS the contest fee. The fee is charged win or lose (see costs.yaml), so
+        omitting it here would overstate TP and contradict the constant's own
+        documentation.
     FP: flagged but never disputed -> we paid for a vault nobody needed.
         Cost = posture cost only. A false positive is cheap; that is the point.
     TN: not flagged, not disputed -> zero.
@@ -1689,7 +1726,11 @@ def rupee_confusion(
     return RupeeMatrix(
         tp=int(tp_m.sum()), fp=int(fp_m.sum()),
         tn=int(tn_m.sum()), fn=int(fn_m.sum()),
-        tp_inr=float((amounts[tp_m] * win).sum() - tp_m.sum() * posture),
+        tp_inr=float(
+            (amounts[tp_m] * win).sum()
+            - tp_m.sum() * posture
+            - tp_m.sum() * costs.contest_fee_inr
+        ),
         fp_inr=float(-fp_m.sum() * posture),
         tn_inr=0.0,
         fn_inr=float(-(amounts[fn_m].sum() + fn_m.sum() * costs.contest_fee_inr)),
@@ -1765,37 +1806,57 @@ Expected: FAIL, `ModuleNotFoundError`
 import numpy as np
 import pandas as pd
 
-from dispute_autopilot.config import load_features
+from dispute_autopilot.config import CostConfig, load_costs, load_features
 from dispute_autopilot.economics.cost_model import RupeeMatrix, rupee_confusion
 
-RULE_AMOUNT_INR = 10000.0
-RULE_DIST = 100.0
 
-
-def baseline_predictions(df: pd.DataFrame, name: str) -> np.ndarray:
+def baseline_predictions(
+    df: pd.DataFrame, name: str, costs: CostConfig | None = None
+) -> np.ndarray:
     n = len(df)
     if name == "none":
         return np.zeros(n, dtype=int)
     if name == "all":
         return np.ones(n, dtype=int)
     if name == "rules":
+        # Thresholds live in costs.yaml: this baseline is REPORTED alongside the
+        # model, so its parameters are published methodology, not magic numbers.
+        rules = (costs or load_costs()).baseline_rules
         amt = pd.to_numeric(df["TransactionAmt"], errors="coerce").fillna(0)
         dist = pd.to_numeric(df.get("dist1"), errors="coerce").fillna(0)
         p, r = df.get("P_emaildomain"), df.get("R_emaildomain")
-        mismatch = (p.notna() & r.notna() & (p != r)) if p is not None else False
-        return ((amt > RULE_AMOUNT_INR) & ((dist > RULE_DIST) | mismatch)).astype(int).to_numpy()
+        # BOTH must be guarded. Guarding only `p` raises AttributeError when
+        # P_emaildomain is present and R_emaildomain is absent.
+        mismatch = (
+            (p.notna() & r.notna() & (p != r))
+            if (p is not None and r is not None)
+            else False
+        )
+        return (
+            (amt > rules.amount_inr) & ((dist > rules.dist) | mismatch)
+        ).astype(int).to_numpy()
     raise ValueError(f"unknown baseline: {name}")
 
 
 def compare_baselines(
-    df: pd.DataFrame, model_scores: np.ndarray, threshold: float
+    df: pd.DataFrame,
+    model_scores: np.ndarray,
+    threshold: float,
+    costs: CostConfig | None = None,
 ) -> dict[str, RupeeMatrix]:
+    """`costs` must reach EVERY arm. This produces the headline model-vs-baselines
+    table, so a variant config that only half-applies makes the sensitivity
+    analysis silently fake."""
     fc = load_features()
     y = df[fc.target].to_numpy()
     amounts = df["TransactionAmt"].to_numpy(dtype=float)
-    out = {n: rupee_confusion(y, baseline_predictions(df, n), amounts)
-           for n in ("none", "all", "rules")}
-    out["model"] = rupee_confusion(y, (model_scores >= threshold).astype(int), amounts)
+    out = {
+        n: rupee_confusion(y, baseline_predictions(df, n, costs=costs), amounts, costs=costs)
+        for n in ("none", "all", "rules")
+    }
+    out["model"] = rupee_confusion(
+        y, (model_scores >= threshold).astype(int), amounts, costs=costs
+    )
     return out
 ```
 

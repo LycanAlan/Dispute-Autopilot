@@ -733,11 +733,14 @@ Expected: FAIL, `ModuleNotFoundError`
 ```python
 """Load IEEE-CIS with dtype downcasting. 590k x 434 in float64 will not fit
 comfortably in 8 GB; downcasting on load is what makes this run on a laptop."""
-from pathlib import Path
-
 import pandas as pd
 
-RAW = Path("data/raw")
+# Reuse the ONE definition of where raw data lives. A second literal
+# Path("data/raw") here would be CWD-relative and would break the moment
+# anything runs from outside the repo root -- the bug already fixed once
+# in download.py. Importing download is side-effect free: it imports
+# kaggle inside the function, never at module scope.
+from dispute_autopilot.ingest.download import RAW
 
 
 def downcast(df: pd.DataFrame) -> pd.DataFrame:
@@ -799,6 +802,9 @@ git commit -m "feat: add IEEE-CIS loader with dtype downcasting"
 
 **This gate is blocking. Do not proceed to Task 1.3 until it is written up.**
 
+`eval/__init__.py` already defines `REPORTS` (the one absolute path every report
+writer imports). Do not redefine it in any module.
+
 - [ ] **Step 1: Write the diagnostic**
 
 ```python
@@ -816,7 +822,9 @@ import matplotlib.pyplot as plt
 
 from dispute_autopilot.ingest.load import load_raw
 
-REPORTS = Path("eval/reports")
+# ONE definition, in eval/__init__.py -- see below. Hand-writing
+# parents[N] per file gets the depth wrong the moment a module moves.
+from eval import REPORTS
 
 
 def run() -> dict:
@@ -3330,7 +3338,9 @@ from dispute_autopilot.model.calibrate import (
 )
 from dispute_autopilot.model.train import save_model, train_model
 
-REPORTS = Path("eval/reports")
+# ONE definition, in eval/__init__.py -- see below. Hand-writing
+# parents[N] per file gets the depth wrong the moment a module moves.
+from eval import REPORTS
 
 
 def main(matured_max_day: int | None = None, sample_n: int | None = None) -> dict:
@@ -3475,7 +3485,9 @@ from dispute_autopilot.casefile.synthesize import synthesize_casefile
 from dispute_autopilot.contracts import Dispute, Posture
 from dispute_autopilot.ingest.load import load_raw
 
-REPORTS = Path("eval/reports")
+# ONE definition, in eval/__init__.py -- see below. Hand-writing
+# parents[N] per file gets the depth wrong the moment a module moves.
+from eval import REPORTS
 N_CASES = 20  # keep small: each case is one API call
 
 
@@ -3569,7 +3581,9 @@ from dispute_autopilot.model.predict import Scorer
 from dispute_autopilot.triage import triage
 
 st.set_page_config(page_title="Dispute Autopilot", layout="wide")
-REPORTS = Path("eval/reports")
+# ONE definition, in eval/__init__.py -- see below. Hand-writing
+# parents[N] per file gets the depth wrong the moment a module moves.
+from eval import REPORTS
 
 
 @st.cache_resource

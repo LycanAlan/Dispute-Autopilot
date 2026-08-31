@@ -41,6 +41,14 @@ def build_features(
     if p is None or r is None:
         out["email_domain_mismatch"] = 0
     else:
+        # .astype(object) BEFORE comparing. load_raw()'s downcast() converts both
+        # columns to pandas `category` dtype, inferring each column's categories
+        # independently -- 43 domains for P, 27 for R on the real data. Pandas
+        # raises TypeError when comparing two Categoricals whose category sets
+        # differ, so comparing the raw columns crashes on real input while
+        # passing on any fixture that supplies plain strings.
+        p = p.astype("object")
+        r = r.astype("object")
         both = p.notna() & r.notna()
         out["email_domain_mismatch"] = np.where(both & (p != r), 1, 0)
 

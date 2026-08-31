@@ -4,12 +4,18 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from dispute_autopilot.ingest.load import downcast
+
 
 @pytest.fixture
 def batch():
     rng = np.random.default_rng(0)
     n = 50
-    return pd.DataFrame({
+    # Passed through the production downcast() deliberately: real loading turns
+    # low-cardinality object columns into pandas `category` dtype, and doing
+    # that here too is what let the email-mismatch category-comparison bug
+    # surface in the test suite instead of on the real 590k-row run.
+    return downcast(pd.DataFrame({
         "TransactionID": range(n),
         "TransactionDT": rng.integers(0, 86400 * 180, n),
         "TransactionAmt": rng.uniform(10, 5000, n).round(2),
@@ -27,4 +33,4 @@ def batch():
         "M1": rng.choice(["T", "F"], n), "M2": rng.choice(["T", "F"], n),
         "M3": rng.choice(["T", "F"], n), "M4": rng.choice(["M0", "M1"], n),
         "M6": rng.choice(["T", "F"], n),
-    })
+    }))

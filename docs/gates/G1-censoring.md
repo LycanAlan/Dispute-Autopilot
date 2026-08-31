@@ -53,6 +53,21 @@ the window — if anything, the last 30 days run slightly *above* the first
 30 days and above the dataset-wide mean of 0.0350. There is no visual or
 numeric evidence of the labels thinning out near the collection boundary.
 
+## What this check cannot rule out
+
+The test is one-sided and compares an observed rate against an unobservable
+counterfactual. A rising underlying chargeback rate could in principle mask
+partial censoring: if the true rate in the last 30 days were higher still,
+a depressed-but-not-inverted observed rate would pass this gate. Nothing in
+this dataset lets us separate those two explanations, because the quantity
+that would settle it — the label as it would have stood after a full 120 days
+for every tail transaction — is the thing we do not have.
+
+What the result does establish is the direction of the risk. Right-censoring
+biases measured precision *downward*, so if any residual censoring survives
+this check, the reported metrics are conservative rather than flattering.
+That is the safe direction for a number we are asking a reader to trust.
+
 ## Verdict and consequence
 
 **CLEAN** (ratio 1.336 ≥ the 0.7 threshold). The tail rate is higher than

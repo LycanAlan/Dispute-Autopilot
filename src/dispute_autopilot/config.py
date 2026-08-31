@@ -63,6 +63,7 @@ class CostConfig(BaseModel):
     contest_fee_inr: float
     ops_cost_inr: float
     decision_margin_inr: float
+    posture_thresholds_inr: dict[str, float]
     posture_cost_inr: dict[str, float]
     completeness: Completeness
     reason_codes: dict[str, ReasonCode]

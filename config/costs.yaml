@@ -31,6 +31,15 @@ contest_fee_inr: 750.0
 ops_cost_inr: 250.0                # PLACEHOLDER - staff time per contested dispute
 decision_margin_inr: 100.0         # REVIEW band half-width
 
+# Expected exposure (P(chargeback) x amount) at which each posture turns on.
+# These are the vault's policy dial and are REPORTED, so they belong in config
+# with the other published assumptions -- not as literals inside store.py.
+# Compare against posture_cost_inr below: we spend Rs 12 once Rs 50 is at risk,
+# and Rs 75 once Rs 500 is at risk.
+posture_thresholds_inr:
+  PASSIVE: 50.0
+  ACTIVE: 500.0
+
 posture_cost_inr:
   NONE: 0.0
   PASSIVE: 12.0                    # PLACEHOLDER - storage/logging per transaction

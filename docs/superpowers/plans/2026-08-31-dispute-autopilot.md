@@ -2316,7 +2316,7 @@ def synthesize_casefile(row: pd.Series, posture: Posture, seed: int = 0) -> Case
         ),
     }
 
-    if posture is Posture.ACTIVE:
+    if True:  # built unconditionally, then filtered by posture below
         items["shipping_proof"] = EvidenceItem(
             field="shipping_proof",
             value=(f"Delivered, signature captured, AWB {_stable_id(txn_id, seed, 'awb')}"
@@ -2331,7 +2331,17 @@ def synthesize_casefile(row: pd.Series, posture: Posture, seed: int = 0) -> Case
             source="email_log",
         )
 
-    return CaseFile(transaction_id=txn_id, posture=posture, items=items)
+    # PASSIVE_FIELDS / ACTIVE_EXTRA are the single source of truth for which
+    # posture yields which evidence. Filtering here rather than branching above
+    # keeps those constants load-bearing: if they were merely declared while the
+    # dict was hand-built, the two would drift apart silently and 5.3's
+    # required-evidence gate would be reasoning about the wrong field set.
+    allowed = PASSIVE_FIELDS + (ACTIVE_EXTRA if posture is Posture.ACTIVE else [])
+    return CaseFile(
+        transaction_id=txn_id,
+        posture=posture,
+        items={k: v for k, v in items.items() if k in allowed},
+    )
 ```
 
 - [ ] **Step 4: Run the tests**
@@ -2405,24 +2415,32 @@ data. Report it as a policy simulation, never as a measured result.
 import json
 from pathlib import Path
 
+from dispute_autopilot.config import CostConfig, load_costs
 from dispute_autopilot.contracts import CaseFile, Posture
 
-PASSIVE_EXPOSURE_INR = 50.0
-ACTIVE_EXPOSURE_INR = 500.0
+VAULT_ROOT = Path(__file__).resolve().parents[3] / "data" / "vault"
 
 
-def choose_posture(p_chargeback: float, amount_inr: float) -> Posture:
-    """Expected exposure = P(chargeback) * amount. Spend on evidence in proportion."""
+def choose_posture(
+    p_chargeback: float, amount_inr: float, costs: CostConfig | None = None
+) -> Posture:
+    """Expected exposure = P(chargeback) * amount. Spend on evidence in proportion.
+
+    Thresholds live in config/costs.yaml beside posture_cost_inr. They are the
+    vault's policy dial and get reported, so they are published methodology --
+    not literals buried in this module.
+    """
+    thresholds = (costs or load_costs()).posture_thresholds_inr
     exposure = p_chargeback * amount_inr
-    if exposure >= ACTIVE_EXPOSURE_INR:
+    if exposure >= thresholds["ACTIVE"]:
         return Posture.ACTIVE
-    if exposure >= PASSIVE_EXPOSURE_INR:
+    if exposure >= thresholds["PASSIVE"]:
         return Posture.PASSIVE
     return Posture.NONE
 
 
 class VaultStore:
-    def __init__(self, root: Path = Path("data/vault")):
+    def __init__(self, root: Path = VAULT_ROOT):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 

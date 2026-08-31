@@ -18,6 +18,11 @@ from pydantic import BaseModel, ConfigDict
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 
+# ONE definition. A CWD-relative Path("artifacts") breaks the moment anything
+# runs from outside the repo root, and it fails by writing a model to the wrong
+# place rather than by raising.
+ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent / "artifacts"
+
 ASSUMPTION_NOTICE = (
     "Contest recommendations rest on an inference that is not validated by this "
     "dataset: a transaction scored as low chargeback risk that is nevertheless "

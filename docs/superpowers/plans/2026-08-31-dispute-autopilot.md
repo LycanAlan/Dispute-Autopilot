@@ -1307,10 +1307,11 @@ def test_train_returns_a_booster_that_scores_in_unit_interval(batch):
     rng = np.random.default_rng(1)
     df = pd.concat([batch] * 8, ignore_index=True)
     df["isFraud"] = rng.integers(0, 2, len(df))
-    booster = train_model(df, num_boost_round=10)
+    booster, categories = train_model(df, num_boost_round=10)
     from dispute_autopilot.features.builder import build_features
-    preds = booster.predict(build_features(df))
+    preds = booster.predict(build_features(df, categories=categories))
     assert preds.min() >= 0.0 and preds.max() <= 1.0
+    assert set(categories), "train_model must return the fitted category sets"
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
@@ -1327,13 +1328,14 @@ Expected: FAIL, `ModuleNotFoundError`
 """LightGBM training with class weighting."""
 from pathlib import Path
 
+import joblib
 import lightgbm as lgb
 import pandas as pd
 
-from dispute_autopilot.config import load_features
-from dispute_autopilot.features.builder import build_features
+from dispute_autopilot.config import ARTIFACTS_DIR, load_features
+from dispute_autopilot.features.builder import build_features, extract_categories
 
-ARTIFACTS = Path("artifacts")
+ARTIFACTS = ARTIFACTS_DIR
 
 PARAMS = {
     "objective": "binary",
@@ -1349,14 +1351,29 @@ PARAMS = {
 }
 
 
-def train_model(train_df: pd.DataFrame, num_boost_round: int = 400) -> lgb.Booster:
+def train_model(
+    train_df: pd.DataFrame, num_boost_round: int = 400
+) -> tuple[lgb.Booster, dict[str, pd.CategoricalDtype]]:
+    """Returns the booster AND the category sets it was fitted against.
+
+    These are returned together, as a pair, on purpose. The categories are not
+    optional metadata -- they are half the model. LightGBM splits on
+    `.cat.codes`, so a booster scored against re-inferred categories is scoring
+    against different integers than it trained on: silently, with no error and
+    no failing test.
+
+    Returning a tuple makes that mistake a TypeError at the call site instead of
+    a wrong number in the README. Every caller is forced to acknowledge them.
+    """
     fc = load_features()
     X = build_features(train_df)
+    categories = extract_categories(X)
     y = train_df[fc.target]
     pos = max(int(y.sum()), 1)
     params = dict(PARAMS, scale_pos_weight=(len(y) - pos) / pos)
     dataset = lgb.Dataset(X, label=y, categorical_feature=fc.categorical)
-    return lgb.train(params, dataset, num_boost_round=num_boost_round)
+    booster = lgb.train(params, dataset, num_boost_round=num_boost_round)
+    return booster, categories
 
 
 def save_model(booster: lgb.Booster, path: Path = ARTIFACTS / "model.txt") -> Path:
@@ -1395,12 +1412,15 @@ Expected: 1 passed
 .venv/Scripts/python -c "
 from dispute_autopilot.ingest.load import load_raw
 from dispute_autopilot.ingest.split import temporal_split
-from dispute_autopilot.model.train import train_model, save_model
+from dispute_autopilot.model.train import train_model, save_model, save_categories
 from dispute_autopilot.features.builder import build_features
 from sklearn.metrics import average_precision_score
 tr, ca, te = temporal_split(load_raw())
-b = train_model(tr); save_model(b)
-print('test PR-AUC', average_precision_score(te.isFraud, b.predict(build_features(te))))
+b, cats = train_model(tr); save_model(b); save_categories(cats)
+# categories=cats is what makes this a real number. Without it the test slice
+# re-infers its own codes and the PR-AUC reported here is measuring a model
+# against scrambled categoricals.
+print('test PR-AUC', average_precision_score(te.isFraud, b.predict(build_features(te, categories=cats))))
 "
 ```
 
@@ -1461,15 +1481,27 @@ import numpy as np
 import pandas as pd
 from sklearn.isotonic import IsotonicRegression
 
-from dispute_autopilot.config import load_features
+from dispute_autopilot.config import ARTIFACTS_DIR, load_features
 from dispute_autopilot.features.builder import build_features
 
-ARTIFACTS = Path("artifacts")
+ARTIFACTS = ARTIFACTS_DIR
 
 
-def fit_calibrator(booster, calib_df: pd.DataFrame) -> IsotonicRegression:
+def fit_calibrator(
+    booster,
+    calib_df: pd.DataFrame,
+    categories: dict[str, pd.CategoricalDtype],
+) -> IsotonicRegression:
+    """`categories` is REQUIRED and has no default, deliberately.
+
+    The calibration slice is a different time window than training, so its
+    inferred category sets differ from the training ones. Calibrating on
+    re-inferred codes fits the mapping against a model that is effectively
+    reading scrambled categoricals -- which would then be baked into every
+    expected-value decision downstream.
+    """
     fc = load_features()
-    raw = booster.predict(build_features(calib_df))
+    raw = booster.predict(build_features(calib_df, categories=categories))
     iso = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
     iso.fit(raw, calib_df[fc.target].to_numpy())
     return iso
@@ -1526,9 +1558,9 @@ def test_score_one_returns_a_contract_object(batch):
     rng = np.random.default_rng(2)
     df = pd.concat([batch] * 8, ignore_index=True)
     df["isFraud"] = rng.integers(0, 2, len(df))
-    booster = train_model(df, num_boost_round=10)
-    iso = fit_calibrator(booster, df)
-    scorer = Scorer(booster=booster, calibrator=iso)
+    booster, categories = train_model(df, num_boost_round=10)
+    iso = fit_calibrator(booster, df, categories)
+    scorer = Scorer(booster=booster, calibrator=iso, categories=categories)
 
     result = scorer.score_one(df.iloc[[0]])
     assert isinstance(result, RiskScore)
@@ -1557,18 +1589,22 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 
+from dispute_autopilot.config import ARTIFACTS_DIR
 from dispute_autopilot.contracts import RiskScore
 from dispute_autopilot.features.builder import build_features
 from dispute_autopilot.model.calibrate import apply_calibrator
 
-ARTIFACTS = Path("artifacts")
+ARTIFACTS = ARTIFACTS_DIR
 
 
 @dataclass
 class Scorer:
     booster: lgb.Booster
     calibrator: object
-    categories: dict[str, pd.CategoricalDtype] | None = None
+    # No default. A Scorer without categories is a broken Scorer, so it must be
+    # impossible to construct one by omission -- the same reason
+    # Decision.assumption_notice has no default.
+    categories: dict[str, pd.CategoricalDtype]
 
     @classmethod
     def load(cls, artifacts: Path = ARTIFACTS) -> "Scorer":

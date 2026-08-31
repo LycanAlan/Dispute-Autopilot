@@ -3081,6 +3081,13 @@ No model judges the model. A claim is grounded only if:
 
 Rule 3 is what catches a plausible-sounding invented tracking number, which is
 the failure mode that matters for a system that must not fabricate evidence.
+
+WHAT THIS DOES NOT CATCH, stated plainly because the README claims a safety
+property and the claim must be honest: rule 3 compares identifier-like tokens.
+Invented PROSE carrying no identifier -- "the customer confirmed receipt by
+phone" -- passes if it cites a real source key. The defence against that is
+Task 7.2's refusal gate combined with a narrow source vocabulary, not this
+function. Do not describe this verifier as preventing all fabrication.
 """
 import re
 
@@ -3317,6 +3324,39 @@ def test_contest_path_attaches_a_verified_bundle():
     assert result.bundle.claims[0].grounded is True
 ```
 
+def test_a_fabricated_identifier_is_refused_and_never_contested():
+    """The headline safety property: verification must change the outcome.
+
+    Without the refusal gate this test passes CONTEST with an ungrounded claim
+    attached -- the verifier runs, marks it False, and nothing acts on it.
+    """
+    from dispute_autopilot.contracts import Claim
+
+    def _hallucinating_assembler(dispute, casefile):
+        return EvidenceBundle(
+            dispute_id=dispute.dispute_id,
+            fields={"shipping_proof": "Shipped under AWB ZZZ999"},
+            claims=[Claim(text="Shipped under AWB ZZZ999",
+                          source_field="src_shipping_proof")])
+
+    result = triage(_d(), _row(), _FakeScorer(0.01), _FakeVault(_full_cf()),
+                    _hallucinating_assembler)
+    assert result.action is Action.REVIEW
+    assert result.refused_claims == ["Shipped under AWB ZZZ999"]
+    assert result.bundle is not None, "the bundle is kept for a human to inspect"
+
+
+def test_asserting_fields_with_no_attributable_claims_is_refused():
+    """groundedness is 1.0 on an empty claim list -- that must not be a pass."""
+    def _unattributed(dispute, casefile):
+        return EvidenceBundle(dispute_id=dispute.dispute_id,
+                              fields={"shipping_proof": "v"}, claims=[])
+
+    result = triage(_d(), _row(), _FakeScorer(0.01), _FakeVault(_full_cf()),
+                    _unattributed)
+    assert result.action is Action.REVIEW
+
+
 - [ ] **Step 2: Run it to verify it fails**
 
 ```bash
@@ -3358,7 +3398,24 @@ def triage(
     # never invoked, so the system cannot draft a representment it has no
     # evidence for. This is the defense-only guarantee in code.
     if decision.action is Action.CONTEST:
-        decision.bundle = verify(assembler(dispute, casefile), casefile)
+        bundle = verify(assembler(dispute, casefile), casefile)
+
+        # THE REFUSAL GATE. Verification that cannot change the outcome is
+        # decoration. A claim the verifier could not tie back to the vault is
+        # never transmitted -- the decision is downgraded to REVIEW and the
+        # offending claims are recorded for a human.
+        #
+        # The second condition guards a subtler hole: EvidenceBundle.groundedness
+        # is 1.0 for an empty claim list, so a bundle that asserts evidence
+        # fields while making no attributable claims would otherwise score
+        # perfectly and sail through. Asserting facts without attribution is
+        # exactly what this system must not do.
+        ungrounded = [c.text for c in bundle.claims if not c.grounded]
+        if ungrounded or (bundle.fields and not bundle.claims):
+            decision = decision.model_copy(
+                update={"action": Action.REVIEW, "refused_claims": ungrounded}
+            )
+        decision.bundle = bundle
 
     return decision
 ```
@@ -3369,7 +3426,7 @@ def triage(
 .venv/Scripts/python -m pytest tests/test_triage.py -v
 ```
 
-Expected: 3 passed
+Expected: 5 passed
 
 - [ ] **Step 5: Run the whole suite**
 

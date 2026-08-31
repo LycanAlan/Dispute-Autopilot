@@ -74,3 +74,11 @@ class Decision(BaseModel):
     missing_required: list[str] = Field(default_factory=list)
     assumption_notice: str
     bundle: EvidenceBundle | None = None
+    # Claims the groundedness verifier could not tie back to the vault. Non-empty
+    # means the refusal gate fired and downgraded this decision to REVIEW: the
+    # bundle is retained for a human to inspect, never transmitted.
+    refused_claims: list[str] = Field(default_factory=list)
+    # Claims the groundedness verifier could not tie back to the vault. Non-empty
+    # means the refusal gate fired and downgraded this decision to REVIEW: the
+    # bundle is retained for a human to inspect, never transmitted.
+    refused_claims: list[str] = Field(default_factory=list)

@@ -6,14 +6,18 @@ from dispute_autopilot.config import CostConfig, load_costs, load_features
 from dispute_autopilot.economics.cost_model import RupeeMatrix, rupee_confusion
 
 
-def baseline_predictions(df: pd.DataFrame, name: str) -> np.ndarray:
+def baseline_predictions(
+    df: pd.DataFrame, name: str, costs: CostConfig | None = None
+) -> np.ndarray:
     n = len(df)
     if name == "none":
         return np.zeros(n, dtype=int)
     if name == "all":
         return np.ones(n, dtype=int)
     if name == "rules":
-        rules = load_costs().baseline_rules
+        # Thresholds live in costs.yaml: this baseline is REPORTED alongside the
+        # model, so its parameters are published methodology, not magic numbers.
+        rules = (costs or load_costs()).baseline_rules
         amt = pd.to_numeric(df["TransactionAmt"], errors="coerce").fillna(0)
         dist = pd.to_numeric(df.get("dist1"), errors="coerce").fillna(0)
         p, r = df.get("P_emaildomain"), df.get("R_emaildomain")
@@ -41,7 +45,7 @@ def compare_baselines(
     y = df[fc.target].to_numpy()
     amounts = df["TransactionAmt"].to_numpy(dtype=float)
     out = {
-        n: rupee_confusion(y, baseline_predictions(df, n), amounts, costs=costs)
+        n: rupee_confusion(y, baseline_predictions(df, n, costs=costs), amounts, costs=costs)
         for n in ("none", "all", "rules")
     }
     out["model"] = rupee_confusion(

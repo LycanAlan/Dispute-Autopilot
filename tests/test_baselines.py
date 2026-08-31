@@ -55,3 +55,24 @@ def test_compare_baselines_threads_costs_through_every_cell():
     # config, default_out and variant_out would be identical.
     assert default_out["model"].net_inr != variant_out["model"].net_inr
     assert default_out["rules"].net_inr != variant_out["rules"].net_inr
+
+
+def test_rules_baseline_honours_variant_threshold_not_the_global_config():
+    # Row 1 (amount=20000, dist=400) only clears the default rules threshold
+    # (amount_inr, dist). If baseline_predictions reads load_costs() instead
+    # of the passed `costs`, this variant is silently ignored and predictions
+    # are identical to the default -- the exact bug being guarded against.
+    df = _df()
+    default_preds = baseline_predictions(df, "rules")
+    assert default_preds[1] == 1  # sanity: default rules flag row 1
+
+    from dispute_autopilot.config import BaselineRules
+
+    variant = load_costs().model_copy(
+        update={"baseline_rules": BaselineRules(amount_inr=1_000_000.0, dist=1_000_000.0)}
+    )
+    variant_preds = baseline_predictions(df, "rules", costs=variant)
+    assert variant_preds[1] == 0, (
+        "variant baseline_rules thresholds were not honoured -- "
+        "baseline_predictions is reading the global config instead of `costs`"
+    )

@@ -1,9 +1,8 @@
 """Download IEEE-CIS from Kaggle. Requires competition rules acceptance."""
-import subprocess
 import zipfile
 from pathlib import Path
 
-RAW = Path("data/raw")
+RAW = Path(__file__).resolve().parent.parent.parent.parent / "data" / "raw"
 COMPETITION = "ieee-fraud-detection"
 NEEDED = ["train_transaction.csv", "train_identity.csv"]
 
@@ -13,10 +12,13 @@ def download() -> None:
     if all((RAW / n).exists() for n in NEEDED):
         print("already downloaded")
         return
-    subprocess.run(
-        ["kaggle", "competitions", "download", "-c", COMPETITION, "-p", str(RAW)],
-        check=True,
-    )
+    # Imported here, not at module scope: `import kaggle` triggers
+    # api.authenticate() as a side effect the moment it runs. Importing at
+    # module scope would demand kaggle.json even when the fast path above
+    # returns without touching Kaggle at all.
+    import kaggle
+
+    kaggle.api.competition_download_files(COMPETITION, path=str(RAW))
     for z in RAW.glob("*.zip"):
         with zipfile.ZipFile(z) as f:
             f.extractall(RAW)

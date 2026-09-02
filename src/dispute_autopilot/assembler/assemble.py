@@ -37,7 +37,16 @@ class _AssembledBundle(BaseModel):
 def anthropic_provider(system: str, prompt: str, schema: type[BaseModel]) -> BaseModel:
     import anthropic  # inside: constructing a client requires credentials
 
-    response = anthropic.Anthropic().messages.parse(
+    # An identity-linked API key is rejected without the workspace it acts in:
+    #   400 "anthropic-workspace-id is required when authenticating with an
+    #        identity-linked API key"
+    # Ordinary keys neither need nor accept it, so it is sent only when set.
+    workspace = os.getenv("ANTHROPIC_WORKSPACE_ID")
+    client = anthropic.Anthropic(
+        default_headers={"anthropic-workspace-id": workspace} if workspace else None
+    )
+
+    response = client.messages.parse(
         model=ANTHROPIC_MODEL,
         max_tokens=16000,
         system=system,

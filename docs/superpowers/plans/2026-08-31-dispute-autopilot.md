@@ -3590,7 +3590,7 @@ from dispute_autopilot.ingest.split import temporal_split
 from dispute_autopilot.model.calibrate import (
     apply_calibrator, fit_calibrator, save_calibrator,
 )
-from dispute_autopilot.model.train import save_model, train_model
+from dispute_autopilot.model.train import save_categories, save_model, train_model
 
 # ONE definition, in eval/__init__.py -- see below. Hand-writing
 # parents[N] per file gets the depth wrong the moment a module moves.
@@ -3604,14 +3604,19 @@ def main(matured_max_day: int | None = None, sample_n: int | None = None) -> dic
     df = load_raw(sample_n=sample_n)
     train, calib, test = temporal_split(df, matured_max_day=matured_max_day)
 
-    booster = train_model(train)
-    iso = fit_calibrator(booster, calib)
+    # train_model returns a PAIR. The categories are half the model: LightGBM
+    # splits on .cat.codes, so scoring the test slice with re-inferred
+    # categories measures the model against different integers than it trained
+    # on -- silently, and the PR-AUC printed below would be fiction.
+    booster, categories = train_model(train)
+    iso = fit_calibrator(booster, calib, categories)
     save_model(booster)
+    save_categories(categories)
     save_calibrator(iso)
 
     y = test[fc.target].to_numpy()
     amounts = test["TransactionAmt"].to_numpy(dtype=float)
-    raw = booster.predict(build_features(test))
+    raw = booster.predict(build_features(test, categories=categories))
     p = apply_calibrator(iso, raw)
 
     sweep_df = sweep(y, p, amounts, n_steps=100)
@@ -3879,6 +3884,7 @@ from dispute_autopilot.model.predict import Scorer
 from dispute_autopilot.triage import triage
 
 st.set_page_config(page_title="Dispute Autopilot", layout="wide")
+from dispute_autopilot.razorpay.client import DryRunClient
 # ONE definition, in eval/__init__.py -- see below. Hand-writing
 # parents[N] per file gets the depth wrong the moment a module moves.
 from eval import REPORTS
@@ -3921,6 +3927,17 @@ with tab_triage:
         st.error(f"Refused to contest. Missing required evidence: "
                  f"{', '.join(decision.missing_required)}")
 
+    # The refusal gate, made visible. A claim the verifier could not tie back to
+    # the vault downgrades CONTEST to REVIEW. If this never appears on screen,
+    # the demo cannot show the one property that makes the system defense-only.
+    if decision.refused_claims:
+        st.error(
+            "Refused to contest. The groundedness verifier could not tie these "
+            "claims back to the vault, so they were never transmitted:"
+        )
+        for claim in decision.refused_claims:
+            st.write(f"- {claim}")
+
     st.subheader("Vault contents")
     st.json({k: v.value for k, v in casefile.items.items()})
 
@@ -3932,6 +3949,26 @@ with tab_triage:
             {"claim": c.text, "source": c.source_field, "grounded": c.grounded}
             for c in decision.bundle.claims
         ]))
+
+    # THE RAZORPAY-NATIVE CLAIM, made visible. Task 7.1 builds a schema-valid
+    # contest payload, and without this block nothing in the demo ever shows
+    # it -- the entire "speaks Razorpay's evidence schema" claim would rest on
+    # a function no viewer sees run. Dry-run by default: constructed, validated,
+    # and deliberately not transmitted.
+    if decision.action is Action.CONTEST and decision.bundle:
+        st.subheader("Razorpay contest payload (DRY RUN — not transmitted)")
+        try:
+            call = DryRunClient().contest(dispute.dispute_id, decision.bundle)
+            st.code(call["endpoint"], language="text")
+            st.json(call["payload"])
+            st.caption(
+                "transmitted = False. The payload is schema-validated against "
+                "Razorpay's documented evidence fields and shown here instead "
+                "of being sent. Live submission requires test-mode keys and is "
+                "recorded in docs/gates/G2-razorpay-test-mode.md."
+            )
+        except ValueError as exc:
+            st.error(f"Payload failed Razorpay schema validation: {exc}")
 
     st.caption(decision.assumption_notice)
 

@@ -8,18 +8,20 @@ import streamlit as st
 from dispute_autopilot.casefile.store import VaultStore, choose_posture
 from dispute_autopilot.casefile.synthesize import synthesize_casefile
 from dispute_autopilot.config import load_costs
-from dispute_autopilot.contracts import Action, Dispute
+from dispute_autopilot.contracts import Action, Claim, Dispute, EvidenceBundle
 from dispute_autopilot.economics.threshold import optimal_threshold, sweep
 from dispute_autopilot.ingest.load import load_raw
 from dispute_autopilot.model.predict import Scorer
 from dispute_autopilot.triage import triage
-
-st.set_page_config(page_title="Dispute Autopilot", layout="wide")
+from dispute_autopilot.assembler.assemble import assemble_deterministic
 from dispute_autopilot.economics.cost_model import to_inr
 from dispute_autopilot.razorpay.client import DryRunClient
-# ONE definition, in eval/__init__.py -- see below. Hand-writing
-# parents[N] per file gets the depth wrong the moment a module moves.
+# ONE definition, in eval/__init__.py. Hand-writing parents[N] per file gets
+# the depth wrong the moment a module moves.
 from eval import REPORTS
+
+# Must be the first Streamlit call in the script.
+st.set_page_config(page_title="Dispute Autopilot", layout="wide")
 
 
 @st.cache_resource
@@ -49,7 +51,58 @@ with tab_triage:
     dispute = Dispute(dispute_id=f"disp_{idx}",
                       transaction_id=int(row["TransactionID"].iloc[0]),
                       amount_inr=amount, reason_code="fraud_card_absent")
-    decision = triage(dispute, row, scorer, vault)
+
+    # Assembler selection, exposed rather than hidden. Three honest modes:
+    #
+    #   Claude          the real assembler. Costs money per CONTEST decision.
+    #   Deterministic   template assembly, no API key, no network. Note that its
+    #                   groundedness is true BY CONSTRUCTION -- it copies vault
+    #                   values verbatim -- so the refusal gate can never fire
+    #                   through it. Fine for browsing; proves nothing about
+    #                   groundedness.
+    #   Fault injection a deliberately fabricated claim, to demonstrate the
+    #                   refusal gate live. This is a FIRE DRILL, labelled as
+    #                   such on screen: it is the only way to show the gate
+    #                   firing on demand rather than waiting for a real model to
+    #                   hallucinate on camera. It never touches the API.
+    mode = st.radio(
+        "Evidence assembler",
+        ["Deterministic (free)", "Claude (live, costs money)",
+         "Fault injection — fabricate a claim"],
+        horizontal=True,
+        help="Fault injection proves the groundedness gate rejects unsupported "
+             "claims. It is a demonstration, not model output.",
+    )
+
+    if mode.startswith("Claude"):
+        chosen_assembler = None          # triage() resolves the live provider
+    elif mode.startswith("Fault"):
+        def chosen_assembler(dispute, casefile):
+            """Assert a tracking number that appears nowhere in the vault."""
+            real = assemble_deterministic(dispute, casefile)
+            return EvidenceBundle(
+                dispute_id=dispute.dispute_id,
+                fields=dict(real.fields, shipping_proof="Delivered under AWB ZZZ999"),
+                claims=list(real.claims) + [
+                    Claim(text="Delivered under AWB ZZZ999",
+                          source_field="carrier_tracking")
+                ],
+            )
+        st.warning(
+            "Fault injection active. A fabricated tracking number (AWB ZZZ999) "
+            "is being inserted into the evidence bundle. It is not in the vault, "
+            "so the groundedness verifier should reject it and the decision "
+            "should be downgraded to REVIEW."
+        )
+    else:
+        chosen_assembler = assemble_deterministic
+        st.caption(
+            "Deterministic assembly: vault values are copied verbatim, so every "
+            "claim is grounded by construction and the refusal gate cannot fire. "
+            "Use fault injection to see the gate work."
+        )
+
+    decision = triage(dispute, row, scorer, vault, chosen_assembler)
 
     c1, c2, c3 = st.columns(3)
     c1.metric("P(chargeback)", f"{score.p_chargeback:.4f}")

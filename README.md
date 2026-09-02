@@ -160,6 +160,14 @@ Three tabs: Triage (score a transaction, watch it produce `CONTEST`/`ACCEPT`/`RE
 .venv/Scripts/python -m pytest -q
 ```
 
+## Demo video
+
+5-minute pitch script and shot list: [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
+**Recording pending** — the script names the exact demo rows to drive to
+(CONTEST, ACCEPT, REVIEW, and a fault-injection refusal), so recording it is
+a read-and-click exercise, not an ad-lib. Link will be added here once the
+video is recorded and uploaded unlisted to YouTube.
+
 ## Architecture
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full data flow, component boundaries, and the design reasoning behind calibration, the evidence gate, the feature-parity guarantee, and the deterministic verifier.

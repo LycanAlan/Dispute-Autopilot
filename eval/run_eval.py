@@ -89,6 +89,17 @@ def main(matured_max_day: int | None = None, sample_n: int | None = None) -> dic
         "n_test": int(len(test)),
         "positive_rate": float(y.mean()),
         "pr_auc": float(average_precision_score(y, p)),
+        # Reported alongside because calibration LOWERS average precision here
+        # (0.4405 raw -> 0.4243 calibrated) and a reader deserves to see why
+        # rather than wonder which number was cherry-picked. Isotonic
+        # regression is a step function: it collapses ~109,000 distinct scores
+        # into ~143 levels, and the resulting ties cost average precision.
+        # Ranking quality is not degraded -- the metric is penalising tie
+        # structure. Calibration is kept because every downstream decision is
+        # an expected-value computation, and uncalibrated scores overstate
+        # P(chargeback) by ~5.6x (mean 0.192 against a 0.034 base rate).
+        "pr_auc_uncalibrated": float(average_precision_score(y, raw)),
+        "brier_uncalibrated": float(brier_score_loss(y, raw)),
         "roc_auc": float(roc_auc_score(y, p)),
         "brier": float(brier_score_loss(y, p)),
         "operating_threshold": quality_threshold,

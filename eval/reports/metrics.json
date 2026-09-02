@@ -4,6 +4,8 @@
     "n_test": 118108,
     "positive_rate": 0.034409184813899145,
     "pr_auc": 0.4243033986099751,
+    "pr_auc_uncalibrated": 0.4404662993074733,
+    "brier_uncalibrated": 0.0779807406589153,
     "roc_auc": 0.8699734356224438,
     "brier": 0.024438582424854104,
     "operating_threshold": 0.33366666666666667,

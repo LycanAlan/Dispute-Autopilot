@@ -26,6 +26,19 @@ class RupeeMatrix:
         return self.tp_inr + self.fp_inr + self.tn_inr + self.fn_inr
 
 
+def to_inr(amounts, costs: CostConfig | None = None) -> np.ndarray:
+    """Convert IEEE-CIS TransactionAmt (USD) into rupees.
+
+    The dataset's amounts are USD -- the competition host says so. Every rupee
+    figure this project reports depends on this conversion happening exactly
+    once, at the boundary where raw data becomes economics. Call it there and
+    nowhere else: converting twice is as wrong as not converting at all, and
+    neither failure raises.
+    """
+    costs = costs or load_costs()
+    return np.asarray(amounts, dtype=float) * costs.usd_to_inr
+
+
 def rupee_confusion(
     y_true: np.ndarray,
     y_pred: np.ndarray,

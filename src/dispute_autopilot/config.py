@@ -58,6 +58,7 @@ class CostConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     currency: str
+    usd_to_inr: float
     base_win_rate_fraud_coded: float
     lift_clip: tuple[float, float]
     contest_fee_inr: float

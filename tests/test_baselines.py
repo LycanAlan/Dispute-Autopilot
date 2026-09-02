@@ -58,10 +58,13 @@ def test_compare_baselines_threads_costs_through_every_cell():
 
 
 def test_rules_baseline_honours_variant_threshold_not_the_global_config():
-    # Row 1 (amount=20000, dist=400) only clears the default rules threshold
-    # (amount_inr, dist). If baseline_predictions reads load_costs() instead
-    # of the passed `costs`, this variant is silently ignored and predictions
-    # are identical to the default -- the exact bug being guarded against.
+    # Row 1 is USD 20,000, which to_inr() converts to INR 1,660,000 -- so the
+    # variant threshold must sit ABOVE that to change the answer. Amounts are
+    # USD in this dataset and thresholds are rupees; a variant of INR 1,000,000
+    # looks large and is in fact below the converted amount.
+    # If baseline_predictions reads load_costs() instead of the passed `costs`,
+    # this variant is silently ignored and predictions are identical to the
+    # default -- the exact bug being guarded against.
     df = _df()
     default_preds = baseline_predictions(df, "rules")
     assert default_preds[1] == 1  # sanity: default rules flag row 1
@@ -69,10 +72,30 @@ def test_rules_baseline_honours_variant_threshold_not_the_global_config():
     from dispute_autopilot.config import BaselineRules
 
     variant = load_costs().model_copy(
-        update={"baseline_rules": BaselineRules(amount_inr=1_000_000.0, dist=1_000_000.0)}
+        update={
+            "baseline_rules": BaselineRules(amount_inr=5_000_000.0, dist=1_000_000.0)
+        }
     )
     variant_preds = baseline_predictions(df, "rules", costs=variant)
     assert variant_preds[1] == 0, (
         "variant baseline_rules thresholds were not honoured -- "
         "baseline_predictions is reading the global config instead of `costs`"
     )
+
+
+def test_rules_baseline_survives_real_category_dtypes(batch):
+    """The `batch` fixture goes through the production downcast(), so both email
+    columns are `category` with DIFFERENT category sets -- the shape that
+    crashed builder.py on real data. This site was fixed second, because no
+    test fed it realistic dtypes. This is that test.
+    """
+    import pandas as pd
+
+    assert isinstance(batch["P_emaildomain"].dtype, pd.CategoricalDtype)
+    assert list(batch["P_emaildomain"].cat.categories) != list(
+        batch["R_emaildomain"].cat.categories
+    ), "fixture no longer reproduces the mismatched-category shape"
+
+    preds = baseline_predictions(batch, "rules")
+    assert len(preds) == len(batch)
+    assert set(preds) <= {0, 1}

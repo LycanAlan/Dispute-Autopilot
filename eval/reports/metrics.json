@@ -1,0 +1,65 @@
+{
+  "family_a": {
+    "basis": "MEASURED on real labels, held-out temporal split",
+    "n_test": 118108,
+    "positive_rate": 0.034409184813899145,
+    "pr_auc": 0.4243033986099751,
+    "roc_auc": 0.8699734356224438,
+    "brier": 0.024438582424854104,
+    "operating_threshold": 0.33366666666666667,
+    "operating_threshold_basis": "maximises F1 -- chosen on model quality, independent of any cost assumption",
+    "precision_at_threshold": 0.5568022440392707,
+    "recall_at_threshold": 0.390748031496063,
+    "f1_at_threshold": 0.459224985540775
+  },
+  "family_b": {
+    "basis": "SIMULATED under config/costs.yaml assumptions",
+    "assumptions": {
+      "usd_to_inr": 83.0,
+      "contest_fee_inr": 750.0,
+      "ops_cost_inr": 250.0,
+      "base_win_rate_fraud_coded": 0.171
+    },
+    "ev_optimal_threshold": 0.001,
+    "ev_optimal_threshold_is_at_sweep_boundary": true,
+    "precision_at_ev_threshold": 0.037403088209412835,
+    "recall_at_ev_threshold": 0.9936023622047244,
+    "net_inr": {
+      "none": -53672549.86,
+      "all": -3249301.97,
+      "rules": -48810829.98,
+      "model": -2706762.63
+    },
+    "confusion_counts": {
+      "none": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 114044,
+        "fn": 4064
+      },
+      "all": {
+        "tp": 4064,
+        "fp": 114044,
+        "tn": 0,
+        "fn": 0
+      },
+      "rules": {
+        "tp": 139,
+        "fp": 2832,
+        "tn": 111212,
+        "fn": 3925
+      },
+      "model": {
+        "tp": 4038,
+        "fp": 103921,
+        "tn": 10123,
+        "fn": 26
+      }
+    },
+    "model_uplift_vs_flag_all_inr": 542539.35
+  },
+  "meta": {
+    "matured_max_day": null,
+    "sample_n": null
+  }
+}

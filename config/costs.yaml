@@ -1,5 +1,18 @@
 currency: INR
 
+# IEEE-CIS TransactionAmt is denominated in USD -- the competition host states
+# this explicitly. Median $68.77, mean $135.03 across 590,540 rows. Treating
+# those numbers as rupees silently understates every disputed amount by ~83x,
+# which makes a Rs 750 contest fee exceed the disputed amount for 98% of rows
+# and makes the rules baseline fire on 2 of 590,540.
+#
+# This is a STATED CONVERSION, not a measurement: IEEE-CIS is US card data, so
+# there is no Indian ground truth here. The rate is a round approximation of
+# the 2026 USD/INR range, held as a single published constant so every rupee
+# figure in the README can be divided back out by a reader who disagrees with
+# it. The sensitivity sweep exists partly for this reason.
+usd_to_inr: 83.0
+
 # Verified priors (checked 2026-08-31). Do not edit without re-checking sources.
 #   Fraud-coded representment win rate: 17.1%  (chargeback.io 2026)
 #   Overall representment win rate:     41-54% (source-dependent; Chargebacks911 says 54% US)
@@ -58,5 +71,8 @@ reason_codes:
 # Hand-written rules baseline. Reported alongside the model, so these thresholds
 # are part of the published methodology, not implementation detail.
 baseline_rules:
+  # Rs 10,000 ~ USD 120, just above the USD 68.77 median: a plausible
+  # "large transaction" rule. Against UNCONVERTED dollar amounts this fired on
+  # 2 rows in 590,540 and the baseline was degenerate.
   amount_inr: 10000.0
   dist: 100.0

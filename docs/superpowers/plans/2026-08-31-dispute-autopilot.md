@@ -3884,6 +3884,7 @@ from dispute_autopilot.model.predict import Scorer
 from dispute_autopilot.triage import triage
 
 st.set_page_config(page_title="Dispute Autopilot", layout="wide")
+from dispute_autopilot.economics.cost_model import to_inr
 from dispute_autopilot.razorpay.client import DryRunClient
 # ONE definition, in eval/__init__.py -- see below. Hand-writing
 # parents[N] per file gets the depth wrong the moment a module moves.
@@ -3902,7 +3903,12 @@ with tab_triage:
     st.header("Dispute triage")
     idx = st.number_input("Transaction row", 0, len(data) - 1, 0)
     row = data.iloc[[idx]]
-    amount = float(row["TransactionAmt"].iloc[0])
+    # USD -> INR at the boundary, exactly as baselines.py and run_eval.py do.
+    # TransactionAmt is dollars; choose_posture's thresholds, Dispute.amount_inr
+    # and every rupee figure on this screen are rupees. Without this the median
+    # exposure reads about $2.34 against a Rs 50 threshold, nearly everything
+    # comes out Posture.NONE, and the demo cannot show CONTEST at all.
+    amount = float(to_inr(row["TransactionAmt"].iloc[0]))
 
     score = scorer.score_one(row)
     posture = choose_posture(score.p_chargeback, amount)
@@ -4005,7 +4011,7 @@ with tab_econ:
     # costs.yaml — which is exactly the bug this design removes.
     variant = load_costs().model_copy(update={"contest_fee_inr": float(fee)})
     sweep_df = sweep(sample["isFraud"].to_numpy(), p,
-                     sample["TransactionAmt"].to_numpy(dtype=float),
+                     to_inr(sample["TransactionAmt"].to_numpy(dtype=float), variant),
                      n_steps=60, costs=variant)
     best = optimal_threshold(sweep_df)
 

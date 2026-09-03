@@ -98,6 +98,62 @@ This is deliberately *not* "ask a second model whether the first model's output 
 
 The verifier's docstring states its own limit, and the same limit is stated in the README rather than only here: it compares *identifier-like tokens*. A fabricated claim that carries no identifier — invented prose citing a real, existing source key, such as "the customer confirmed receipt by phone" attributed to a source that never said this — passes verification if the cited key exists. That gap is real and is not closed by this function; the system's defence against it is the assembler's system prompt (`assembler/prompts.py`: "You may use ONLY the facts in the provided case file... Every claim you make must name the case-file source key it came from") combined with the refusal gate acting on whatever the deterministic check *can* catch. This project does not claim the verifier prevents all fabrication — it claims a specific, narrower, and true thing: it structurally cannot let an invented identifier reach the Razorpay payload undetected.
 
+## Why the assembler is behind a provider seam
+
+`assembler/assemble.py` imports no LLM SDK at module scope. Each provider —
+Anthropic, OpenAI, and a deterministic template path — imports its own SDK
+inside its own function. This is not vendor-neutrality theatre: an
+`import anthropic` at module scope makes the module unimportable on a machine
+with no SDK installed, which turns a billing problem into a red test suite. The
+project had already been bitten by exactly this when `import kaggle`
+authenticated at import time.
+
+`default_provider()` resolves from the environment and falls back to templates
+when no key is present, so a clone with no credentials still runs the demo and
+the full test suite. The template path is deliberately labelled in the UI as
+unable to demonstrate groundedness: it copies vault values verbatim, so its
+claims are grounded *by construction* and the refusal gate can never fire
+through it.
+
+The shipped configuration is `claude-sonnet-5` at `effort: medium` with
+thinking disabled, and all three are set explicitly rather than inherited.
+Effort left unset defaults to `high`, which is how a project ends up paying for
+the most expensive configuration without ever deciding to. Thinking is disabled
+because this step is constrained extraction — copy facts from a five-line case
+file into a fixed schema and attribute each claim to a source key — with a
+deterministic verifier checking the output afterwards; it is also a correctness
+fix, since a run died when a response carried thinking blocks but an empty text
+block and structured output had nothing to parse.
+
+Whatever is configured here is also what metric family C measures. Reporting
+generation quality from a cheap model while demonstrating an expensive one
+would be the unfalsifiable vendor claim this project's positioning criticises,
+so the two are bound to one constant and the family C artifact records the
+model and effort it ran at.
+
+## Why the evidence-field schema is a list, not a map
+
+`_AssembledBundle.fields` is `list[_AssembledField]`, which reads as a worse fit
+than `dict[str, str]` for what is conceptually a mapping. It is a list because
+an open-ended object with no declared properties is satisfiable by `{}` under
+structured output, and the model returned an empty dict on *every* call while
+filling `claims` — a list of a typed model — perfectly every time. Three prompt
+revisions were spent on what was a schema problem. The dict is reconstructed in
+`assemble()` after parsing.
+
+## Why the demo can inject a fault
+
+`ui/app.py` offers three assembler modes, and the third deliberately fabricates
+a tracking number absent from the vault. This exists because of a structural
+problem with demonstrating the safety property: the free deterministic
+assembler cannot produce an ungrounded claim, and a real model, when measured,
+produced zero fabrications across twenty cases. Waiting for a live hallucination
+on camera is not a plan.
+
+Fault injection is labelled on screen as a demonstration rather than model
+output. A fire drill presented as a real fire would be precisely the kind of
+claim this project exists to argue against.
+
 ## Three metric families, and why they are never merged
 
 | Family | What | Basis |

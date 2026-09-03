@@ -50,6 +50,12 @@ def main(n: int = N_CASES) -> dict:
     incomplete_refusals = 0   # blocked by the completeness gate, no API call made
     gate_refusals = 0         # assembled, then refused for an ungrounded claim
     api_calls = 0
+    # Without this, a groundedness of 1.0 is uninterpretable:
+    # EvidenceBundle.groundedness returns 1.0 for an EMPTY claim list, so a
+    # model that attributed nothing at all scores identically to one that
+    # attributed everything correctly. Recording the counts is what makes the
+    # headline number mean something.
+    claim_counts: list[int] = []
 
     for i, (_, row) in enumerate(df.iterrows()):
         # Alternate: half full evidence, half deliberately degraded.
@@ -77,6 +83,7 @@ def main(n: int = N_CASES) -> dict:
                           reason_code="fraud_card_absent")
         bundle = verify(assemble(dispute, casefile), casefile)
         grounded_scores.append(bundle.groundedness)
+        claim_counts.append(len(bundle.claims))
         if any(not c.grounded for c in bundle.claims):
             gate_refusals += 1
 
@@ -96,6 +103,13 @@ def main(n: int = N_CASES) -> dict:
         "n_assembled": complete_cases,
         "n_api_calls": api_calls,
         "groundedness_mean": round(mean_g, 4),
+        "total_claims": sum(claim_counts),
+        "mean_claims_per_bundle": round(sum(claim_counts) / k, 2) if k else None,
+        "bundles_with_zero_claims": sum(1 for c in claim_counts if c == 0),
+        # A groundedness of 1.0 means nothing unless claims were actually made.
+        # If this is False, the headline number is vacuous and must not be
+        # reported as a result.
+        "groundedness_is_interpretable": bool(k and all(c > 0 for c in claim_counts)),
         "hallucination_rate": round(1.0 - mean_g, 4),
         # Of the bundles actually assembled, how many did the refusal gate stop.
         # THIS is the safety property under test.

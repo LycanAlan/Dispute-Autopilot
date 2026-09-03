@@ -45,11 +45,25 @@ html.lenis body {
  * than the viewport is treated as a scroll runway: progress runs 0 to 1 as
  * it passes under a pinned stage. See engine.ts for the exact mapping.
  */
+/* The :not() is load bearing, not style.
+ *
+ * tokens.css sets .on-charcoal and this file sets .section. Both are single
+ * class selectors, so they tie on specificity and the later import wins, which
+ * is this one. Every charcoal section on the site therefore rendered paper on
+ * paper, and two section agents independently worked around it by raising
+ * specificity inside their own stylesheets. That is eight copies of a fix for
+ * one bug, and the ninth section would have hit it again.
+ *
+ * Excluding the opt-out here lets .on-charcoal apply unopposed and states the
+ * rule the design actually has: a section is paper unless it asks not to be. */
+.section:not(.on-charcoal) {
+  background: var(--paper);
+  color: var(--ink);
+}
+
 .section {
   position: relative;
   min-height: 100svh;
-  background: var(--paper);
-  color: var(--ink);
 }
 
 /* Opt in to a runway by setting an explicit height taller than the viewport. */

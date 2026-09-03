@@ -256,6 +256,47 @@ export async function startEngine(options: StartOptions): Promise<Engine> {
     }
   }
 
+  /**
+   * Scroll to a section only once the page has stopped moving underneath it.
+   *
+   * A single requestAnimationFrame is too early. The display face is still
+   * loading, and under ?flat=1 the canvas fallbacks have not sized themselves
+   * yet, so every section above the target changes height after the scroll has
+   * already happened and the page lands somewhere else. ?section=refusal&flat=1
+   * reliably arrived at the hero, which is the one combination a filming
+   * fallback cannot afford to get wrong.
+   *
+   * So: wait for fonts, wait two frames for layout, scroll, then scroll again
+   * a moment later. The second call is a no-op when nothing moved and is the
+   * whole fix when something did.
+   */
+  function settleThenScroll(id: string): void {
+    const m = mounted.find((x) => x.entry.id === id);
+    if (!m) {
+      scrollToSection(id, true); // let it log its own warning about the id
+      return;
+    }
+
+    // Re-assert until the target stops moving. A fixed delay cannot work here:
+    // how long the page takes to settle depends on the font cache, on whether
+    // ?flat=1 is swapping canvas fallbacks in, and on the machine. Stopping as
+    // soon as two consecutive checks agree keeps this off the main thread for
+    // the rest of the take rather than polling forever.
+    let previous = Number.NaN;
+    let attempts = 0;
+    const settle = (): void => {
+      scrollToSection(id, true);
+      const top = m.el.getBoundingClientRect().top;
+      attempts += 1;
+      if (Math.abs(top - previous) < 1 || attempts >= 12) return;
+      previous = top;
+      setTimeout(settle, 120);
+    };
+
+    const ready = document.fonts?.ready ?? Promise.resolve();
+    void ready.then(() => requestAnimationFrame(() => requestAnimationFrame(settle)));
+  }
+
   function requestedSection(): string | null {
     if (flags.section) return flags.section;
     const hash = window.location.hash.replace(/^#/, '');
@@ -269,9 +310,7 @@ export async function startEngine(options: StartOptions): Promise<Engine> {
     for (const m of mounted) callUpdate(m, 1);
 
     const target = requestedSection();
-    if (target) {
-      requestAnimationFrame(() => scrollToSection(target));
-    }
+    if (target) settleThenScroll(target);
 
     const stillEngine: Engine = {
       sections: mounted,

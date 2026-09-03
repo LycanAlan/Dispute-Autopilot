@@ -65,7 +65,10 @@ def test_a_stub_provider_is_used_when_supplied():
 
     def stub(system, prompt, schema):
         assert "AVS match on name and postcode" in prompt
-        return schema(fields={"billing_proof": "x"},
+        # fields is a LIST of typed entries, not a dict: an open dict[str, str]
+        # has no declared properties and structured output satisfied it with {}
+        # on every real call.
+        return schema(fields=[{"evidence_field": "billing_proof", "value": "x"}],
                       claims=[{"text": "x", "source_field": "avs_result"}])
 
     bundle = assemble(_d(), _cf(), provider=stub)

@@ -92,7 +92,7 @@ def synthesize_casefile(row: pd.Series, posture: Posture, seed: int = 0) -> Case
         )
         items["customer_communication"] = EvidenceItem(
             field="customer_communication",
-            value=(f"Order confirmation emailed to {row.get('P_emaildomain', 'customer')}; "
+            value=(f"Order confirmation emailed to {_or_unrecorded(row.get('P_emaildomain'))}; "
                    f"no reply received. Thread {_stable_id(txn_id, seed, 'mail')}"),
             source="email_log",
         )

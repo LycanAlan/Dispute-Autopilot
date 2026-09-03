@@ -27,36 +27,27 @@ def build_prompt(dispute: Dispute, casefile: CaseFile) -> str:
         "",
         "Available source keys: " + ", ".join(sorted(i.source for i in casefile.items.values())),
         "",
-        "Produce the evidence bundle. For each Razorpay evidence field you can "
-        "support, write the value using only the facts above. Then write an "
-        "explanation_letter.",
+        # A SPECIFICATION, not an argument. Two earlier revisions piled on
+        # shouty REQUIRED paragraphs -- one of which leaked engineering
+        # commentary about the model's own past failures straight into the
+        # prompt -- and the output got worse each time: five claims and zero
+        # fields, then nothing at all. The model was being told a story instead
+        # of given a task. Keep this mechanical.
+        #
+        # No explanation_letter is requested. It is a real Razorpay evidence
+        # field, but nothing in the vault supports free prose, and the
+        # groundedness verifier cannot catch fabricated prose carrying no
+        # identifier. Asking for it would manufacture the exact failure mode
+        # this system claims to prevent.
+        "Return the evidence bundle with exactly two keys.",
         "",
-        # Measured, not guessed: at claude-sonnet-5 / effort=medium, 7 of 10
-        # bundles came back with populated `fields` and an EMPTY `claims` list
-        # when this instruction was a trailing clause. The refusal gate caught
-        # every one of them -- an unattributed bundle is refused -- but a
-        # correct system that refuses 70% of its own output is not much use.
-        # Attribution is stated here as a hard requirement with the consequence
-        # spelled out, because the model complied with everything that was
-        # phrased as a requirement and skipped what was phrased as an aside.
-        "REQUIRED: `fields` must not be empty either. Measured: when only "
-        "`claims` was stated as a requirement, the model returned five "
-        "well-attributed claims and zero fields -- it optimised for what was "
-        "demanded and skipped what was merely mentioned. A bundle with no "
-        "evidence fields cannot be filed: Razorpay rejects it, and this system "
-        "refuses it. Populate every evidence_field the case file supports, "
-        "using its value.",
+        "`fields`: one entry per evidence_field listed above, mapping that "
+        "evidence_field name to its value, copied from the case file.",
         "",
-        "REQUIRED: `claims` must not be empty. Every factual statement you put "
-        "in any field must also appear as a separate entry in `claims`, each "
-        "naming the source_key it came from. A bundle with populated fields and "
-        "no claims is automatically REFUSED and never filed, because an "
-        "assertion nobody can trace to a source is exactly what this system "
-        "must not send. If you can support N facts, emit N claims.",
+        "`claims`: one entry per fact you rely on, with `text` set to the fact "
+        "and `source_field` set to that fact's source_key.",
         "",
-        # Restated here, not only in SYSTEM: the deviation note in this task's
-        # commit explains why -- the plan's own test checks build_prompt()'s
-        # return value alone, so the constraint has to be readable there too.
-        "Do not invent facts. Use only the values listed above.",
+        "Both must be non-empty. Use only the case file above. Do not invent "
+        "order numbers, tracking numbers, dates, amounts, or communications.",
     ]
     return "\n".join(lines)

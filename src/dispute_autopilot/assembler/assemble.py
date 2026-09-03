@@ -74,9 +74,19 @@ class _AssembledClaim(BaseModel):
     source_field: str = Field(description="The case-file source key backing this claim")
 
 
+class _AssembledField(BaseModel):
+    evidence_field: str = Field(description="Razorpay evidence field name")
+    value: str = Field(description="Its value, copied from the case file")
+
+
 class _AssembledBundle(BaseModel):
-    fields: dict[str, str] = Field(
-        description="Razorpay evidence field name -> value, built only from case-file facts"
+    # A LIST of typed entries, not dict[str, str]. An open-ended object with no
+    # declared properties is satisfiable by {}, and under structured output the
+    # model returned an empty dict on every single call while filling `claims`
+    # -- which is a list of a typed model -- perfectly every time. Three prompt
+    # rewrites were spent on what was a schema problem.
+    fields: list[_AssembledField] = Field(
+        description="One entry per evidence field, built only from case-file facts"
     )
     claims: list[_AssembledClaim] = Field(
         description="Every factual claim made, each attributed to a source key"
@@ -168,6 +178,6 @@ def assemble(
     parsed = provider(SYSTEM, build_prompt(dispute, casefile), _AssembledBundle)
     return EvidenceBundle(
         dispute_id=dispute.dispute_id,
-        fields=parsed.fields,
+        fields={f.evidence_field: f.value for f in parsed.fields},
         claims=[Claim(text=c.text, source_field=c.source_field) for c in parsed.claims],
     )

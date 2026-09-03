@@ -277,24 +277,23 @@ export async function startEngine(options: StartOptions): Promise<Engine> {
       return;
     }
 
-    // Re-assert until the target stops moving. A fixed delay cannot work here:
-    // how long the page takes to settle depends on the font cache, on whether
-    // ?flat=1 is swapping canvas fallbacks in, and on the machine. Stopping as
-    // soon as two consecutive checks agree keeps this off the main thread for
-    // the rest of the take rather than polling forever.
-    let previous = Number.NaN;
-    let attempts = 0;
-    const settle = (): void => {
-      scrollToSection(id, true);
-      const top = m.el.getBoundingClientRect().top;
-      attempts += 1;
-      if (Math.abs(top - previous) < 1 || attempts >= 12) return;
-      previous = top;
-      setTimeout(settle, 120);
-    };
-
+    // Re-assert on a fixed schedule rather than stopping once the position
+    // looks stable. Stability is not the right signal: the five scene sections
+    // share one canvas, and reparenting it changes their heights AFTER two
+    // consecutive measurements have already agreed. ?section=model converged
+    // early, then the page moved out from under it and the take opened on the
+    // hero. These six calls cost nothing and outlast the reparenting.
+    //
+    // scrollIntoView, not a computed offset. The sections are sticky runways
+    // and letting the browser resolve the target is both shorter and correct
+    // for every one of them.
+    const beats = [0, 120, 300, 600, 1000, 1600];
     const ready = document.fonts?.ready ?? Promise.resolve();
-    void ready.then(() => requestAnimationFrame(() => requestAnimationFrame(settle)));
+    void ready.then(() => {
+      for (const ms of beats) {
+        setTimeout(() => m.el.scrollIntoView({ block: 'start', behavior: 'auto' }), ms);
+      }
+    });
   }
 
   function requestedSection(): string | null {

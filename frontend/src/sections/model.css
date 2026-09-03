@@ -107,3 +107,15 @@
   text-transform: uppercase;
   color: var(--bone-50);
 }
+
+/* The admission about calibration lowering PR-AUC. Set as prose rather than as
+ * a footnote, because burying it would defeat the reason for saying it. */
+.model-section__admission {
+  margin: 0.9rem 0 0;
+  max-width: 46ch;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ink-70, currentColor);
+  border-left: 1px solid var(--rule, currentColor);
+  padding-left: 0.85rem;
+}

@@ -67,10 +67,19 @@ class ModelSection implements Section {
               </p>
             </div>
             <ul class="model-section__stats">
+              <li data-stat-brier></li>
               <li data-stat-pr></li>
               <li data-stat-precision></li>
               <li data-stat-recall></li>
             </ul>
+            <p class="model-section__admission">
+              Calibration makes PR-AUC slightly worse, and it is kept anyway.
+              Isotonic regression is a step function, so it collapses scores
+              into fewer distinct levels and average precision pays for that
+              through ties. Ranking quality is unchanged. Every decision after
+              this one is an expected value computation, and that arithmetic on
+              a ranking score is meaningless.
+            </p>
             <p class="micro model-section__caption">Held out in time, never shuffled.</p>
           </div>
 
@@ -105,14 +114,28 @@ class ModelSection implements Section {
       </div>
     `;
 
+    // Brier leads, PR-AUC follows. Calibration IMPROVES Brier roughly threefold
+    // and slightly WORSENS PR-AUC, and the earlier version of this block showed
+    // only the second of those, under a headline arguing that calibration
+    // matters. Read on camera it invited exactly one question, with no answer
+    // on screen. Leading with the measure that improves, and then stating the
+    // cost plainly underneath, is both the honest order and the stronger one.
+    const brierEl = root.querySelector<HTMLElement>('[data-stat-brier]');
+    if (brierEl) {
+      brierEl.textContent =
+        'Brier score ' +
+        data.family_a.brier_uncalibrated.toFixed(4) +
+        ' to ' +
+        data.family_a.brier.toFixed(4) +
+        ' after isotonic calibration';
+    }
     const prEl = root.querySelector<HTMLElement>('[data-stat-pr]');
     if (prEl) {
       prEl.textContent =
         'PR-AUC ' +
         fmtPct(data.family_a.pr_auc_uncalibrated) +
-        ' before isotonic calibration, ' +
-        fmtPct(data.family_a.pr_auc) +
-        ' after';
+        ' to ' +
+        fmtPct(data.family_a.pr_auc);
     }
     const precisionEl = root.querySelector<HTMLElement>('[data-stat-precision]');
     if (precisionEl) precisionEl.textContent = 'Precision ' + fmtPct(data.family_a.precision_at_threshold);

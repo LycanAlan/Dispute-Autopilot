@@ -10,6 +10,15 @@ awkward part rather than hiding it. Nothing here that is not traceable to
 Numbers in `{braces}` are read from the data at runtime, never typed into the
 markup. If a figure is not in the snapshot it does not go on the page.
 
+Brace paths are the real key paths in `frontend/data/snapshot.json`. Four of
+them were wrong when this file was first written: `family_c.groundedness`,
+`family_c.ungrounded_upper_bound_95`, `family_b.net_loss_before` and
+`net_loss_after` do not exist. Family C is stratified into `contestable` and
+`adverse` rather than reported flat, and family B holds `net_inr` keyed by
+policy. The section agent that hit this mapped them and said so instead of
+inventing values, which is the only reason the page is not currently showing
+four blanks.
+
 ---
 
 ## 1. hero
@@ -69,9 +78,20 @@ The next stage multiplies this number by a rupee amount.
 That only works if it is a probability, not a ranking score.
 
 **Stats:**
-- PR-AUC {family_a.pr_auc_uncalibrated} before isotonic calibration, {family_a.pr_auc} after
-- Precision {family_a.precision_at_threshold}
-- Recall {family_a.recall_at_threshold}
+- Brier score {family_a.brier_uncalibrated} to {family_a.brier} after isotonic calibration
+- PR-AUC {family_a.pr_auc_uncalibrated} to {family_a.pr_auc}
+- Precision {family_a.precision_at_threshold}, recall {family_a.recall_at_threshold}
+
+**The part worth saying out loud:**
+Calibration makes PR-AUC slightly worse, and it is kept anyway.
+
+Isotonic regression is a step function. It collapses scores into fewer distinct
+levels, and average precision pays for that through ties. Ranking quality is
+unchanged. Brier score, which measures whether the number means what it says,
+improves by a factor of three.
+
+Every decision after this one is an expected value computation, and expected
+value arithmetic on a ranking score is meaningless.
 
 **Caption:** Held out in time, never shuffled.
 
@@ -82,7 +102,7 @@ That only works if it is a probability, not a ranking score.
 **Headline:** Now just one of them.
 
 **Body:**
-Transaction {case.transaction_id}. The money is already gone.
+Transaction {cases.contest.transaction_id}. The money is already gone.
 The bank took it back this morning.
 
 You have about a week to decide what to do about it.
@@ -166,12 +186,14 @@ A deterministic check walks each one. No model marks its own work.
 PR-AUC {family_a.pr_auc}, precision {family_a.precision_at_threshold}, recall {family_a.recall_at_threshold}.
 
 **B, simulated.** What the policy would have saved.
-Net loss {family_b.net_loss_before} to {family_b.net_loss_after}. Uplift over
+Net loss {family_b.net_inr.none} to {family_b.net_inr.model}. Uplift over
 flag-everything: {family_b.model_uplift_vs_flag_all_inr}.
 
 **C, measured.** Whether the model invents facts.
-Groundedness {family_c.groundedness}. Upper bound on the ungrounded rate,
-{family_c.ungrounded_upper_bound_95} at 95% confidence.
+Groundedness {family_c.contestable.groundedness_mean_over_attributed} on cases
+with a real argument to make, and the same on adverse cases. Upper bound on the
+ungrounded rate, {family_c.contestable.ungrounded_upper_bound_95} at 95%
+confidence, which is what a sample this small will support.
 
 **Footnote:** Blending A and B once made precision read 3.7 percent. That mistake
 is written up in the repo rather than quietly fixed.

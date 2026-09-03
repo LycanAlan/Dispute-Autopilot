@@ -29,6 +29,17 @@ from dispute_autopilot.contracts import CaseFile, Claim, Dispute, EvidenceBundle
 ANTHROPIC_MODEL = "claude-sonnet-5"
 ANTHROPIC_EFFORT = "medium"
 
+# Thinking OFF, deliberately. This step copies facts out of a five-line case
+# file into a fixed schema; there is nothing to reason about, and a
+# deterministic verifier checks the result afterwards.
+#
+# It is also a correctness fix, not just a cost one. With adaptive thinking on
+# (the default on this model) a run died with
+#   pydantic ValidationError: Invalid JSON: EOF while parsing a value
+# because the response carried thinking but an EMPTY text block, so structured
+# output had nothing to parse. Sonnet 5 accepts {"type": "disabled"}.
+ANTHROPIC_THINKING = {"type": "disabled"}
+
 # Published Sonnet 5 rates, USD per million tokens. Used only to report what a
 # run actually cost. A project that measures everything else should not be
 # estimating its own bill from character counts, which is what it was doing.
@@ -91,6 +102,7 @@ def anthropic_provider(system: str, prompt: str, schema: type[BaseModel]) -> Bas
         messages=[{"role": "user", "content": prompt}],
         output_format=schema,
         output_config={"effort": ANTHROPIC_EFFORT},
+        thinking=ANTHROPIC_THINKING,
     )
     USAGE_LOG.append({
         "input_tokens": response.usage.input_tokens,

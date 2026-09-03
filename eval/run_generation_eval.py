@@ -34,6 +34,8 @@ not estimate its own bill.
 """
 import json
 
+from pydantic import ValidationError
+
 from dispute_autopilot.assembler.assemble import (
     ANTHROPIC_EFFORT, ANTHROPIC_MODEL, assemble, usage_summary,
 )
@@ -101,6 +103,7 @@ def main(n_per_stratum: int = N_PER_STRATUM) -> dict:
 
     for kind, cases in strata.items():
         groundedness, claim_counts, declined, gate_refused = [], [], 0, 0
+        malformed = 0
 
         for idx, row, casefile in cases:
             api_calls += 1
@@ -113,7 +116,15 @@ def main(n_per_stratum: int = N_PER_STRATUM) -> dict:
                 amount_inr=float(to_inr(row["TransactionAmt"])),
                 reason_code=REASON,
             )
-            bundle = verify(assemble(dispute, casefile), casefile)
+            # One malformed response must not waste every call after it. A
+            # run that dies halfway has spent real money and produced nothing;
+            # an unparseable response is itself a measurable outcome and is
+            # counted rather than raised.
+            try:
+                bundle = verify(assemble(dispute, casefile), casefile)
+            except ValidationError:
+                malformed += 1
+                continue
             claim_counts.append(len(bundle.claims))
 
             if not bundle.claims and not bundle.fields:
@@ -131,6 +142,10 @@ def main(n_per_stratum: int = N_PER_STRATUM) -> dict:
         results[kind] = {
             "n": len(cases),
             "n_declined_by_model": declined,
+            # Responses that could not be parsed into the schema at all.
+            # Non-zero means the model or its configuration is unreliable here,
+            # which is a result about the assembler worth reporting.
+            "n_malformed_responses": malformed,
             "n_attributed_bundles": k,
             "mean_claims_per_bundle": (
                 round(sum(claim_counts) / len(cases), 2) if cases else None

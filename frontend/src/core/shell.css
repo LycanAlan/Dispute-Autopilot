@@ -1,0 +1,261 @@
+/*
+ * shell.css
+ *
+ * The page furniture that is not a section: masthead, scroll rail, and the
+ * layout primitives every section is laid out with. Sections own their own
+ * interior; this file owns the frame around them.
+ *
+ * Owned by the shell. Section agents should not need to edit it.
+ */
+
+/* ---------------------------------------------------------------- lenis */
+
+/*
+ * Lenis needs these four rules to work. They are written out here rather than
+ * imported from lenis/dist/lenis.css so that the build does not depend on a
+ * path inside someone else's package. They do nothing until the engine
+ * actually starts Lenis, which it does not under ?still=1 or reduced motion.
+ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------- layout */
+
+.shell {
+  position: relative;
+}
+
+/*
+ * One <section> per registered module, stacked. A section that fits the
+ * viewport gets its progress across its full traversal. A section taller
+ * than the viewport is treated as a scroll runway: progress runs 0 to 1 as
+ * it passes under a pinned stage. See engine.ts for the exact mapping.
+ */
+.section {
+  position: relative;
+  min-height: 100svh;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Opt in to a runway by setting an explicit height taller than the viewport. */
+.section--runway {
+  min-height: 0;
+}
+
+/* The pane that stays put while the runway scrolls under it. */
+.section__stage {
+  position: sticky;
+  top: 0;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.section__inner {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: calc(var(--masthead-h) + var(--space-7)) var(--gutter) var(--space-8);
+}
+
+/* A section that is not a runway still wants its content vertically centred. */
+.section:not(.section--runway) > .section__inner {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* A hairline between consecutive sections that share the paper ground. */
+.section + .section:not(.on-charcoal) {
+  border-top: 1px solid var(--rule);
+}
+
+/* ------------------------------------------------------------- masthead */
+
+/*
+ * A running head, the way a report has one. Project on the left, position in
+ * the document on the right. It sits above both grounds, so its colour is
+ * driven by <html data-ground>, which the engine updates as sections pass.
+ */
+.masthead {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 40;
+  height: var(--masthead-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-inline: var(--gutter);
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-50);
+  mix-blend-mode: normal;
+  pointer-events: none;
+  transition: color var(--dur-slow) var(--ease-out);
+}
+
+.masthead a {
+  pointer-events: auto;
+  color: inherit;
+}
+
+[data-ground="charcoal"] .masthead {
+  color: var(--bone-50);
+}
+
+.masthead__mark {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.masthead__right {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.masthead__where {
+  font-variant-numeric: tabular-nums;
+}
+
+.masthead__id {
+  color: inherit;
+  opacity: 0.72;
+}
+
+/*
+ * Mode stamps. Only visible when a kill switch is on, so a recording always
+ * shows which mode it was filmed in.
+ */
+.masthead__mode {
+  display: none;
+  padding: 0.15em 0.45em;
+  border: 1px solid currentColor;
+  letter-spacing: 0.16em;
+}
+
+[data-flat] .masthead__mode--flat { display: inline-block; }
+[data-still] .masthead__mode--still { display: inline-block; }
+
+/* ----------------------------------------------------------------- rail */
+
+/* Document progress, as a 2px rule across the very top. */
+.rail {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 41;
+  height: 2px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.rail__fill {
+  height: 100%;
+  width: 0;
+  background: var(--contest);
+  transform-origin: 0 50%;
+}
+
+/* Nothing is progressing when motion is frozen, so the rail says nothing. */
+[data-still] .rail {
+  display: none;
+}
+
+/* -------------------------------------------------------- small pieces */
+
+/*
+ * A label with a rule running off to the right of it. Used above headings.
+ * Cheap, and it is the single most report-like thing on the page.
+ */
+.ruled-kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.ruled-kicker::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* A definition row: label left, monospaced value right, hairline between. */
+.readout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: baseline;
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
+.readout__label {
+  font-size: var(--type-small);
+  color: var(--ink-70);
+}
+
+.readout__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--type-small);
+  font-weight: 500;
+}
+
+/* A bar that fills left to right. width is set from update(progress). */
+.meter {
+  position: relative;
+  height: 1px;
+  background: var(--rule);
+}
+
+.meter__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: currentColor;
+  height: 1px;
+}
+
+/* --------------------------------------------------------- boot states */
+
+/*
+ * Shown while the snapshot loads and replaced by the sections. A spinner is
+ * never the terminal state of anything on this page, so this is type, not a
+ * spinner, and it is removed as soon as there is anything to replace it.
+ */
+.boot {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  padding: var(--gutter);
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  color: var(--ink-50);
+}
+
+.boot--error {
+  color: var(--accept);
+}

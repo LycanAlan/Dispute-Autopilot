@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dispute Autopilot</title>
+    <meta
+      name="description"
+      content="Three-stage chargeback loss prevention for Razorpay merchants. Predict the risk, preserve the evidence, decide on expected value."
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#F4F1EA" />
+
+    <!-- Inline, so the page never makes a request for a 16 pixel image. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2314161A'/%3E%3Crect x='5' y='14' width='22' height='4' fill='%231F6F4A'/%3E%3C/svg%3E"
+    />
+
+    <!--
+      Newsreader for display, IBM Plex Mono for every numeral. Body text uses
+      the platform sans and loads nothing. Both faces have real fallback
+      stacks in tokens.css, so the page is still typeset if this never lands.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap"
+    />
+  </head>
+
+  <body>
+    <!-- Document progress. Hidden under ?still=1, where nothing progresses. -->
+    <div class="rail" aria-hidden="true"><div class="rail__fill" data-rail-fill></div></div>
+
+    <!-- A running head, the way a report has one. Filled in by the engine. -->
+    <header class="masthead">
+      <span class="masthead__mark">Dispute Autopilot</span>
+      <span class="masthead__right">
+        <span class="masthead__mode masthead__mode--flat">Flat</span>
+        <span class="masthead__mode masthead__mode--still">Still</span>
+        <span class="masthead__id" data-masthead-id></span>
+        <span class="masthead__where" data-masthead-where></span>
+      </span>
+    </header>
+
+    <main class="shell" id="app">
+      <p class="boot">Loading the snapshot.</p>
+    </main>
+
+    <noscript>
+      <p class="boot">
+        This page renders its figures from a data file at runtime, so it needs
+        JavaScript. The same numbers are in the repository README.
+      </p>
+    </noscript>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.local
+.vite/
+
+# The repository root ignores every directory named "data" so that the raw
+# IEEE-CIS dataset never lands in git. frontend/data is the opposite case:
+# it holds the small baked artifacts the deployed site reads, and they must
+# be committed or GitHub Pages has nothing to render. A negation in this
+# file overrides the parent rule for this directory only.
+!data/

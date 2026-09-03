@@ -1,0 +1,78 @@
+/*
+ * placeholder.css
+ *
+ * Styles for the two shell check sections. Delete this file with them.
+ *
+ * It is also the worked example of how a section carries its own CSS: import
+ * a stylesheet from the section module, keep the selectors under one class
+ * that starts with the section id, and never reach outside it.
+ */
+
+.ph {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: var(--space-9);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .ph {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-7);
+  }
+}
+
+.ph__title {
+  margin-bottom: var(--space-5);
+}
+
+.ph__panel {
+  border-top: 2px solid var(--ink);
+  padding-top: var(--space-4);
+}
+
+.on-charcoal .ph__panel {
+  border-top-color: var(--bone);
+}
+
+/* The one number each section exists to show. */
+.ph__figure {
+  display: block;
+  margin-block: var(--space-4) var(--space-2);
+}
+
+.ph__meter {
+  margin-bottom: var(--space-6);
+  color: var(--contest);
+}
+
+.ph__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.ph__swatch {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.ph__chip {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: 0 0 auto;
+  transform: translateY(0.05rem);
+}
+
+.ph__note {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+
+/* Deep green loses contrast on charcoal; the meter reads in bone instead. */
+.on-charcoal .ph__meter {
+  color: var(--bone);
+}

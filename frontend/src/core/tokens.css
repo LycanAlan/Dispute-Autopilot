@@ -1,0 +1,324 @@
+/*
+ * tokens.css
+ *
+ * The whole visual system. Sections import nothing but these custom
+ * properties, so a change here moves the entire site at once.
+ *
+ * Two grounds alternate down the page: warm paper for narrative, near black
+ * charcoal for data. Three decision colours and nothing else. No purple, no
+ * indigo, no gradient. The register to aim for is a well set technical
+ * report, not a product page.
+ *
+ * Fonts: Newsreader for display (linked in index.html), the platform UI sans
+ * for prose, IBM Plex Mono for every numeral on the page. Each has a real
+ * fallback stack, so the site stays legible with the network unplugged.
+ */
+
+:root {
+  /* ---- palette, fixed by the design spec ---- */
+  --paper: #F4F1EA;      /* warm off-white, narrative ground */
+  --ink: #17150F;        /* near black, body text on paper */
+  --charcoal: #14161A;   /* data ground */
+  --bone: #E8E4DA;       /* text on charcoal */
+  --contest: #1F6F4A;    /* deep green */
+  --review: #B5822B;     /* amber */
+  --accept: #A54334;     /* clay red */
+
+  /* ---- derived: ink at reduced weight, for rules and secondary text ---- */
+  --rule: rgba(23, 21, 15, 0.12);
+  --rule-strong: rgba(23, 21, 15, 0.28);
+  --ink-70: rgba(23, 21, 15, 0.70);
+  --ink-50: rgba(23, 21, 15, 0.50);
+  --ink-30: rgba(23, 21, 15, 0.30);
+  --paper-sunk: #EBE7DD;       /* panel fill on paper, one step down */
+
+  /* ---- derived: bone at reduced weight, the same set on charcoal ---- */
+  --rule-dark: rgba(232, 228, 218, 0.16);
+  --rule-dark-strong: rgba(232, 228, 218, 0.34);
+  --bone-70: rgba(232, 228, 218, 0.70);
+  --bone-50: rgba(232, 228, 218, 0.50);
+  --bone-30: rgba(232, 228, 218, 0.30);
+  --charcoal-raised: #1B1E23;  /* panel fill on charcoal, one step up */
+
+  /* ---- typography ---- */
+  --font-display: Newsreader, "Iowan Old Style", "Palatino Linotype", Palatino,
+    "Book Antiqua", Georgia, "Times New Roman", serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, "DejaVu Sans Mono", monospace;
+
+  --type-display: clamp(2.75rem, 1.7rem + 4.4vw, 5.5rem);
+  --type-title: clamp(2rem, 1.4rem + 2.6vw, 3.5rem);
+  --type-head: clamp(1.375rem, 1.15rem + 1vw, 2rem);
+  --type-lede: clamp(1.125rem, 1.02rem + 0.5vw, 1.375rem);
+  --type-body: 1.0625rem;
+  --type-small: 0.875rem;
+  --type-micro: 0.75rem;
+  --type-figure: clamp(2.5rem, 1.5rem + 4vw, 5rem);  /* headline numerals */
+
+  --leading-tight: 1.06;
+  --leading-head: 1.18;
+  --leading-body: 1.55;
+
+  /* ---- measure ---- */
+  --measure: 62ch;
+  --measure-tight: 44ch;
+
+  /* ---- spacing, a 4px base ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 9rem;
+
+  /* ---- layout ---- */
+  --gutter: clamp(1.25rem, 4vw, 5rem);
+  --page-max: 78rem;
+  --masthead-h: 3rem;
+
+  /* ---- motion. Durations only; scroll driven work uses progress, not time ---- */
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur-slow: 420ms;
+
+  color-scheme: light;
+}
+
+/* ---------------------------------------------------------------- reset */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: auto;  /* Lenis owns smoothing; see engine.ts */
+}
+
+body,
+h1, h2, h3, h4, p, figure, blockquote, dl, dd, ol, ul {
+  margin: 0;
+}
+
+ol, ul {
+  padding: 0;
+  list-style: none;
+}
+
+img, svg, canvas, video {
+  display: block;
+  max-width: 100%;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* --------------------------------------------------------------- ground */
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+  /* Any stray numeral in prose still aligns in a column. */
+  font-variant-numeric: tabular-nums lining-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--contest);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--contest);
+  outline-offset: 3px;
+}
+
+/* --------------------------------------------------------- type classes */
+
+.display {
+  font-family: var(--font-display);
+  font-size: var(--type-display);
+  font-weight: 400;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--type-title);
+  font-weight: 400;
+  line-height: var(--leading-head);
+  letter-spacing: -0.014em;
+  text-wrap: balance;
+}
+
+.head {
+  font-family: var(--font-display);
+  font-size: var(--type-head);
+  font-weight: 500;
+  line-height: var(--leading-head);
+  letter-spacing: -0.008em;
+}
+
+/* The small ruled label above a heading. Print report, not product page. */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-50);
+}
+
+.lede {
+  font-size: var(--type-lede);
+  line-height: 1.45;
+  max-width: var(--measure);
+  color: var(--ink-70);
+}
+
+.prose {
+  max-width: var(--measure);
+}
+
+.prose p + p {
+  margin-top: var(--space-4);
+}
+
+.small {
+  font-size: var(--type-small);
+  line-height: 1.5;
+  color: var(--ink-70);
+}
+
+.micro {
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  letter-spacing: 0.06em;
+  color: var(--ink-50);
+}
+
+/*
+ * Every numeral on this page is monospaced and tabular. A figure that jitters
+ * while it counts is the difference between a measurement and a decoration.
+ */
+.num,
+[data-num],
+data,
+output,
+time,
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: -0.01em;
+}
+
+.figure-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  font-size: var(--type-figure);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  height: 0;
+}
+
+/* ------------------------------------------------- decision colour roles */
+
+.is-contest { color: var(--contest); }
+.is-review  { color: var(--review); }
+.is-accept  { color: var(--accept); }
+
+/* ------------------------------------------------------- dark inversion */
+
+/*
+ * Sections on the charcoal ground opt in with .on-charcoal. The token names
+ * do not change, so a component written once reads correctly on both grounds.
+ */
+.on-charcoal {
+  background: var(--charcoal);
+  color: var(--bone);
+  --rule: var(--rule-dark);
+  --rule-strong: var(--rule-dark-strong);
+  --ink-70: var(--bone-70);
+  --ink-50: var(--bone-50);
+  --ink-30: var(--bone-30);
+  --paper-sunk: var(--charcoal-raised);
+}
+
+.on-charcoal ::selection {
+  background: var(--bone);
+  color: var(--charcoal);
+}
+
+.on-charcoal :focus-visible {
+  outline-color: var(--bone);
+}
+
+/* --------------------------------------------------------- accessibility */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * Two ways motion gets switched off, and they have to agree.
+ *
+ *   prefers-reduced-motion   the visitor asked for it at the OS level
+ *   [data-still]             ?still=1, set by the engine for filming
+ *
+ * Neither touches scroll linked progress, which is direct manipulation and
+ * stops the moment the visitor stops scrolling. What they kill is anything
+ * that moves on its own.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[data-still] *,
+[data-still] *::before,
+[data-still] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}

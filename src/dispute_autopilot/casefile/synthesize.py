@@ -17,6 +17,11 @@ PASSIVE_FIELDS = ["billing_proof", "access_activity_log", "term_and_conditions"]
 ACTIVE_EXTRA = ["shipping_proof", "customer_communication"]
 
 
+def _or_unrecorded(value) -> str:
+    """Render a missing value as 'not recorded', never as the string 'nan'."""
+    return "not recorded" if value is None or pd.isna(value) else str(value)
+
+
 def _stable_id(txn_id: int, seed: int, tag: str) -> str:
     digest = hashlib.sha256(f"{txn_id}:{seed}:{tag}".encode()).hexdigest()
     return digest[:12].upper()
@@ -60,8 +65,13 @@ def synthesize_casefile(row: pd.Series, posture: Posture, seed: int = 0) -> Case
     items.update({
         "access_activity_log": EvidenceItem(
             field="access_activity_log",
-            value=(f"Session from {row.get('DeviceType', 'unknown')} device "
-                   f"({row.get('DeviceInfo', 'unknown')}), "
+            # pd.isna, not .get(default): the column is PRESENT and holds NaN,
+            # so .get returns the NaN and f-strings render it as the literal
+            # "nan". That put "Session from nan device (nan)" into the evidence
+            # bundle -- the same class of defect as encoding absent AVS flags as
+            # a mismatch, and the assembler faithfully quoted it back.
+            value=(f"Session from {_or_unrecorded(row.get('DeviceType'))} device "
+                   f"({_or_unrecorded(row.get('DeviceInfo'))}), "
                    f"session {_stable_id(txn_id, seed, 'sess')}"),
             source="device_fingerprint",
         ),

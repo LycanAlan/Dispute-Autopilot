@@ -73,3 +73,18 @@ def test_a_single_present_flag_is_still_usable_evidence():
                              Posture.ACTIVE, seed=1)
     assert "mismatch" in cf.items["billing_proof"].value.lower()
     assert "F/-/-" in cf.items["billing_proof"].value
+
+
+def test_missing_device_data_is_not_rendered_as_the_string_nan():
+    """A NaN column is present-but-empty, so .get() returns NaN, not a default.
+
+    'Session from nan device (nan)' reached a real evidence bundle and the
+    assembler quoted it back verbatim.
+    """
+    import numpy as np
+
+    cf = synthesize_casefile(_row(DeviceType=np.nan, DeviceInfo=np.nan),
+                             Posture.ACTIVE, seed=1)
+    value = cf.items["access_activity_log"].value
+    assert "nan" not in value.lower()
+    assert "not recorded" in value

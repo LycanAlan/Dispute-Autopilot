@@ -39,6 +39,14 @@ def build_prompt(dispute: Dispute, casefile: CaseFile) -> str:
         # Attribution is stated here as a hard requirement with the consequence
         # spelled out, because the model complied with everything that was
         # phrased as a requirement and skipped what was phrased as an aside.
+        "REQUIRED: `fields` must not be empty either. Measured: when only "
+        "`claims` was stated as a requirement, the model returned five "
+        "well-attributed claims and zero fields -- it optimised for what was "
+        "demanded and skipped what was merely mentioned. A bundle with no "
+        "evidence fields cannot be filed: Razorpay rejects it, and this system "
+        "refuses it. Populate every evidence_field the case file supports, "
+        "using its value.",
+        "",
         "REQUIRED: `claims` must not be empty. Every factual statement you put "
         "in any field must also appear as a separate entry in `claims`, each "
         "naming the source_key it came from. A bundle with populated fields and "

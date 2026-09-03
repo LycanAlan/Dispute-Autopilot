@@ -167,9 +167,16 @@ def main(n_per_stratum: int = N_PER_STRATUM) -> dict:
         "model": ASSEMBLER_MODEL_NOTE,
         "design": (
             "Stratified on evidence favourability, not vault posture. "
-            "CONTESTABLE cases measure groundedness (the model has a real case "
-            "to argue, so fabrication is possible). ADVERSE cases measure "
-            "refusal (the honest answer is to decline)."
+            "CONTESTABLE cases measure groundedness where the model has a "
+            "real case to argue. ADVERSE cases measure groundedness under "
+            "pressure: the evidence argues against the merchant, which is "
+            "where the temptation to spin is highest. NOTE: the adverse "
+            "stratum was designed to measure REFUSAL, and earlier runs did "
+            "show the model declining to argue such cases. Instructing it that "
+            "both fields and claims must be non-empty removed that behaviour. "
+            "That is defensible -- assembly and the contest decision are "
+            "separate concerns, and the gates decide -- but it was a side "
+            "effect, not a design choice, and the measurement changed with it."
         ),
         "contestable": results.get("contestable"),
         "adverse": results.get("adverse"),

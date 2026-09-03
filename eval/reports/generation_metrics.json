@@ -1,16 +1,33 @@
 {
   "basis": "MEASURED on a synthetic evidence corpus",
   "model": "claude-sonnet-5 at effort=medium",
-  "n_cases": 20,
-  "n_assembled": 5,
-  "n_api_calls": 5,
-  "groundedness_mean": 1.0,
-  "total_claims": 10,
-  "mean_claims_per_bundle": 2.0,
-  "bundles_with_zero_claims": 3,
-  "groundedness_is_interpretable": false,
-  "hallucination_rate": 0.0,
-  "gate_refusal_rate": 0.0,
-  "completeness_refusal_rate_BY_CONSTRUCTION": 0.75,
-  "ungrounded_rate_upper_bound_95": 0.6
+  "design": "Stratified on evidence favourability, not vault posture. CONTESTABLE cases measure groundedness where the model has a real case to argue. ADVERSE cases measure groundedness under pressure: the evidence argues against the merchant, which is where the temptation to spin is highest. NOTE: the adverse stratum was designed to measure REFUSAL, and earlier runs did show the model declining to argue such cases; instructing it that both fields and claims must be non-empty removed that behaviour. Description corrected post-hoc to match what was measured; no figure in this file was changed and the run was not repeated.",
+  "contestable": {
+    "n": 10,
+    "n_declined_by_model": 0,
+    "n_malformed_responses": 0,
+    "n_attributed_bundles": 10,
+    "mean_claims_per_bundle": 4.7,
+    "groundedness_mean_over_attributed": 1.0,
+    "gate_refusal_rate": 0.0,
+    "ungrounded_upper_bound_95": 0.3
+  },
+  "adverse": {
+    "n": 10,
+    "n_declined_by_model": 0,
+    "n_malformed_responses": 0,
+    "n_attributed_bundles": 10,
+    "mean_claims_per_bundle": 5.0,
+    "groundedness_mean_over_attributed": 1.0,
+    "gate_refusal_rate": 0.0,
+    "ungrounded_upper_bound_95": 0.3
+  },
+  "cases_refused_before_any_api_call": 7,
+  "actual_usage": {
+    "api_calls": 20,
+    "input_tokens": 26962,
+    "output_tokens": 9939,
+    "mean_output_tokens": 496.9,
+    "usd": 0.153314
+  }
 }

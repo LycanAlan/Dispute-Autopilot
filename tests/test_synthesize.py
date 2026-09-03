@@ -33,3 +33,43 @@ def test_passive_posture_yields_fewer_items_than_active():
 
 def test_none_posture_yields_an_empty_vault():
     assert synthesize_casefile(_row(), Posture.NONE, seed=1).items == {}
+
+
+def test_absent_avs_flags_do_not_become_an_assertion_of_mismatch():
+    """Missing data must not be filed as adverse evidence.
+
+    M1/M2/M6 are absent in 57%/57%/23% of IEEE-CIS rows. Encoding absence as
+    'AVS mismatch' fabricates a failed billing check -- the mirror image of the
+    fabrication the groundedness verifier exists to prevent.
+    """
+    import numpy as np
+
+    cf = synthesize_casefile(_row(M1=np.nan, M2=np.nan, M6=np.nan),
+                             Posture.ACTIVE, seed=1)
+    assert "billing_proof" not in cf.items, (
+        "no AVS result means no billing proof; filing a placeholder lets the "
+        "completeness gate pass on evidence that does not exist"
+    )
+    for item in cf.items.values():
+        assert "mismatch" not in item.value.lower()
+
+
+def test_absent_billing_proof_makes_the_case_incomplete():
+    """The consequence that matters: these cases must become REVIEW."""
+    import numpy as np
+    from dispute_autopilot.casefile.completeness import assess
+
+    cf = synthesize_casefile(_row(M1=np.nan, M2=np.nan, M6=np.nan),
+                             Posture.ACTIVE, seed=1)
+    _, missing = assess(cf, "fraud_card_absent")
+    assert "billing_proof" in missing
+
+
+def test_a_single_present_flag_is_still_usable_evidence():
+    """Partial data is not absent data -- one recorded F is a real mismatch."""
+    import numpy as np
+
+    cf = synthesize_casefile(_row(M1="F", M2=np.nan, M6=np.nan),
+                             Posture.ACTIVE, seed=1)
+    assert "mismatch" in cf.items["billing_proof"].value.lower()
+    assert "F/-/-" in cf.items["billing_proof"].value

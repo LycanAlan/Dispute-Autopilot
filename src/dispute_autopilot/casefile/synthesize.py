@@ -27,19 +27,37 @@ def synthesize_casefile(row: pd.Series, posture: Posture, seed: int = 0) -> Case
     if posture is Posture.NONE:
         return CaseFile(transaction_id=txn_id, posture=posture, items={})
 
+    # THREE states, not two. M1/M2/M6 are missing in 57%/57%/23% of IEEE-CIS
+    # rows, and 22% of transactions have all three absent. The previous rule
+    # (`sum(f == "T") >= 2`) collapsed missing into "mismatch", so absent data
+    # became an assertion that the billing check FAILED -- fabricating adverse
+    # evidence, which is the mirror image of the fabrication this system exists
+    # to prevent. It also made the assembler decline to argue those cases, since
+    # its instructions correctly tell it to omit unsupported arguments.
     flags = [str(row.get(m, "")).upper() for m in ("M1", "M2", "M6")]
-    matched = sum(f == "T" for f in flags) >= 2
+    present = [f for f in flags if f in ("T", "F")]
+    shown = "/".join(f if f in ("T", "F") else "-" for f in flags)
+    matched = bool(present) and sum(f == "T" for f in present) * 2 >= len(present)
     dist = pd.to_numeric(pd.Series([row.get("dist1")]), errors="coerce").iloc[0]
     far = bool(pd.notna(dist) and dist > 100)
 
-    items: dict[str, EvidenceItem] = {
-        "billing_proof": EvidenceItem(
+    items: dict[str, EvidenceItem] = {}
+
+    # No AVS result recorded means we do not hold billing proof. Omitting the
+    # item entirely -- rather than filing a placeholder saying so -- is what
+    # makes the completeness gate honest: billing_proof is REQUIRED for
+    # fraud_card_absent, so these cases now become REVIEW instead of quietly
+    # contesting on evidence that does not exist. This raises the review rate,
+    # which is the correct direction.
+    if present:
+        items["billing_proof"] = EvidenceItem(
             field="billing_proof",
-            value=(f"AVS match on name and postcode (M1/M2/M6 = {'/'.join(flags)})"
+            value=(f"AVS match on name and postcode (M1/M2/M6 = {shown})"
                    if matched else
-                   f"AVS mismatch on name or postcode (M1/M2/M6 = {'/'.join(flags)})"),
+                   f"AVS mismatch on name or postcode (M1/M2/M6 = {shown})"),
             source="avs_result",
-        ),
+        )
+    items.update({
         "access_activity_log": EvidenceItem(
             field="access_activity_log",
             value=(f"Session from {row.get('DeviceType', 'unknown')} device "
@@ -52,7 +70,7 @@ def synthesize_casefile(row: pd.Series, posture: Posture, seed: int = 0) -> Case
             value=f"T&C v3.1 accepted at checkout, ref {_stable_id(txn_id, seed, 'tnc')}",
             source="checkout_log",
         ),
-    }
+    })
 
     if True:  # built unconditionally, then filtered by posture below
         items["shipping_proof"] = EvidenceItem(

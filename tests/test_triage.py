@@ -95,3 +95,18 @@ def test_asserting_fields_with_no_attributable_claims_is_refused():
     result = triage(_d(), _row(), _FakeScorer(0.01), _FakeVault(_full_cf()),
                     _unattributed)
     assert result.action is Action.REVIEW
+
+
+def test_an_assembler_that_declines_to_argue_is_not_a_contest():
+    """Measured behaviour: on adverse evidence the model returns nothing.
+
+    An empty bundle used to slip through -- the gate's condition was
+    `bundle.fields and not bundle.claims`, which cannot fire when fields is
+    also empty -- so a declined assembly became a CONTEST carrying nothing.
+    The model refusing to build a case is itself a refusal.
+    """
+    def _declines(dispute, casefile):
+        return EvidenceBundle(dispute_id=dispute.dispute_id, fields={}, claims=[])
+
+    result = triage(_d(), _row(), _FakeScorer(0.01), _FakeVault(_full_cf()), _declines)
+    assert result.action is Action.REVIEW

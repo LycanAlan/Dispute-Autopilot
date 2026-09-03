@@ -3400,18 +3400,25 @@ def triage(
     if decision.action is Action.CONTEST:
         bundle = verify(assembler(dispute, casefile), casefile)
 
-        # THE REFUSAL GATE. Verification that cannot change the outcome is
-        # decoration. A claim the verifier could not tie back to the vault is
-        # never transmitted -- the decision is downgraded to REVIEW and the
-        # offending claims are recorded for a human.
+        # THE REFUSAL GATE. A CONTEST only survives if the bundle is
+        # attributable AND non-empty. Three ways it fails:
         #
-        # The second condition guards a subtler hole: EvidenceBundle.groundedness
-        # is 1.0 for an empty claim list, so a bundle that asserts evidence
-        # fields while making no attributable claims would otherwise score
-        # perfectly and sail through. Asserting facts without attribution is
-        # exactly what this system must not do.
+        #   1. a claim the verifier could not tie back to the vault
+        #   2. fields asserted with no attributable claims at all
+        #      (EvidenceBundle.groundedness returns 1.0 for an empty claim
+        #      list, so this would otherwise score perfectly)
+        #   3. an empty bundle -- the assembler declined to argue
+        #
+        # Case 3 was measured, not imagined: on genuinely adverse evidence
+        # (a recorded AVS mismatch) the model correctly returns nothing at all,
+        # because its instructions tell it to omit unsupported arguments. The
+        # old condition `bundle.fields and not bundle.claims` could not fire on
+        # an empty bundle, so a declined assembly became a CONTEST decision
+        # carrying nothing. The model refusing to build a case IS a refusal,
+        # and discarding that signal is exactly the mistake this gate exists to
+        # prevent.
         ungrounded = [c.text for c in bundle.claims if not c.grounded]
-        if ungrounded or (bundle.fields and not bundle.claims):
+        if ungrounded or not bundle.claims or not bundle.fields:
             decision = decision.model_copy(
                 update={"action": Action.REVIEW, "refused_claims": ungrounded}
             )

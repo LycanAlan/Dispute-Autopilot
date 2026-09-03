@@ -31,7 +31,9 @@ from eval import REPORTS
 # Family C must describe the model the system actually ships with. Reporting
 # generation quality from a cheap model while demoing an expensive one is the
 # kind of unfalsifiable claim this project's positioning criticises.
-ASSEMBLER_MODEL_NOTE = "resolved at runtime by assembler.default_provider()"
+from dispute_autopilot.assembler.assemble import ANTHROPIC_EFFORT, ANTHROPIC_MODEL
+
+ASSEMBLER_MODEL_NOTE = f"{ANTHROPIC_MODEL} at effort={ANTHROPIC_EFFORT}"
 
 N_CASES = 20
 # HARD SPEND GUARD. Every assembled case is one paid API call. The budget for

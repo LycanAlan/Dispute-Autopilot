@@ -13,7 +13,21 @@ from pydantic import BaseModel, Field
 from dispute_autopilot.assembler.prompts import SYSTEM, build_prompt
 from dispute_autopilot.contracts import CaseFile, Claim, Dispute, EvidenceBundle
 
-ANTHROPIC_MODEL = "claude-opus-5"
+# Sonnet 5 at medium effort, chosen deliberately rather than inherited.
+# This step is constrained extraction -- copy facts out of a five-line case
+# file into a fixed schema and attribute each claim to a source key -- with a
+# deterministic groundedness verifier checking the output afterwards. It is not
+# a reasoning problem, and frontier capability buys little here.
+#
+# Effort is set EXPLICITLY. Omitting it defaults to "high" on current models,
+# which is how you end up paying for the most expensive configuration without
+# ever having decided to. That was the state of this file before this change.
+#
+# Whatever is set here is also what metric family C measures: reporting
+# generation quality from a cheap model while demoing an expensive one is the
+# unfalsifiable vendor claim this project's README criticises.
+ANTHROPIC_MODEL = "claude-sonnet-5"
+ANTHROPIC_EFFORT = "medium"
 OPENAI_MODEL = "gpt-4.1"
 
 # (system, prompt, schema) -> a validated instance of schema
@@ -52,6 +66,7 @@ def anthropic_provider(system: str, prompt: str, schema: type[BaseModel]) -> Bas
         system=system,
         messages=[{"role": "user", "content": prompt}],
         output_format=schema,
+        output_config={"effort": ANTHROPIC_EFFORT},
     )
     return response.parsed_output
 

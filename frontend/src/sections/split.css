@@ -1,0 +1,51 @@
+/*
+ * split.css
+ *
+ * Section 3. Text on the left, a small panel of the real boundary positions
+ * on the right, the two sweeping planes filling the space between them.
+ */
+
+/* See hero.css for why this override is here: .section and .on-charcoal tie
+   on specificity and .section wins the cascade order, so every charcoal
+   ground section needs its own background/color reassertion. */
+.split-section.on-charcoal {
+  background: var(--charcoal);
+  color: var(--bone);
+}
+
+.split-section .scene-overlay--split {
+  align-self: stretch;
+  min-height: 100svh;
+  align-content: center;
+}
+
+.split-section__lockup {
+  max-width: 32rem;
+  background: var(--charcoal-raised);
+  padding: var(--space-6);
+}
+
+.split-section__head {
+  color: var(--bone);
+  margin-bottom: var(--space-5);
+}
+
+.split-section__body p {
+  color: var(--bone-70);
+}
+
+.split-section__footnote {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+  color: var(--bone-50);
+}
+
+.split-section__panel {
+  align-self: start;
+}
+
+.split-section__note {
+  margin-top: var(--space-4);
+  color: var(--bone-50);
+}

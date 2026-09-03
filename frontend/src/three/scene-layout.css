@@ -1,0 +1,70 @@
+/*
+ * scene-layout.css
+ *
+ * Shared by every section in this directory's pair (hero, label, split,
+ * model, zoom): the field each one hosts either the shared WebGL canvas or
+ * its own flat 2D canvas in, and the two column layout their text sits in
+ * on top of it. One stylesheet so five sections do not each redefine the
+ * same rules slightly differently.
+ */
+
+.scene-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.scene-canvas,
+.flat-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scene-overlay {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: calc(var(--masthead-h) + var(--space-7)) var(--gutter) var(--space-8);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  pointer-events: none;
+}
+
+.scene-overlay > * {
+  pointer-events: auto;
+}
+
+.scene-overlay--split {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: start;
+  gap: var(--space-9);
+}
+
+@media (max-width: 60rem) {
+  .scene-overlay--split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-7);
+  }
+}
+
+.scene-panel {
+  background: var(--charcoal-raised);
+  border: 1px solid var(--rule);
+  padding: var(--space-5);
+}
+
+.scene-caption {
+  margin-top: var(--space-4);
+  color: var(--bone-70);
+}
+
+.scene-kicker-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}

@@ -1,0 +1,37 @@
+/*
+ * label.css
+ *
+ * Section 2. A single text column over the point cloud; the colour change
+ * is the whole argument, so nothing else competes with it for attention.
+ */
+
+/* See hero.css for why this override is here: .section and .on-charcoal tie
+   on specificity and .section wins the cascade order, so every charcoal
+   ground section needs its own background/color reassertion. */
+.label-section.on-charcoal {
+  background: var(--charcoal);
+  color: var(--bone);
+}
+
+.label-section .scene-overlay {
+  align-self: stretch;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+}
+
+.label-section__lockup {
+  max-width: 34rem;
+  background: var(--charcoal-raised);
+  padding: var(--space-6);
+  border-left: 2px solid var(--bone);
+}
+
+.label-section__head {
+  color: var(--bone);
+  margin-bottom: var(--space-5);
+}
+
+.label-section__body p {
+  color: var(--bone-70);
+}

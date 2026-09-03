@@ -1,0 +1,47 @@
+/*
+ * zoom.css
+ *
+ * Section 5. One block of text, centred, that fades up as the cloud finishes
+ * collapsing behind it. Nothing competes with the single point it lands on.
+ */
+
+/* See hero.css for why this override is here: .section and .on-charcoal tie
+   on specificity and .section wins the cascade order, so every charcoal
+   ground section needs its own background/color reassertion. */
+.zoom-section.on-charcoal {
+  background: var(--charcoal);
+  color: var(--bone);
+}
+
+.zoom-section .scene-overlay {
+  align-self: stretch;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-section__lockup {
+  max-width: 30rem;
+  text-align: left;
+}
+
+.zoom-section .pill {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  padding: 0.25em 0.6em;
+  margin-bottom: var(--space-5);
+}
+
+.zoom-section__head {
+  color: var(--bone);
+  margin-bottom: var(--space-5);
+}
+
+.zoom-section__body p {
+  color: var(--bone-70);
+}

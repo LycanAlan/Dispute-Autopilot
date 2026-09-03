@@ -1,0 +1,109 @@
+/*
+ * model.css
+ *
+ * Section 4. Text and stats on the left, the two curves stacked in a panel
+ * on the right. The curves are plain SVG so they draw identically whether
+ * the point cloud behind them is WebGL or the flat canvas fallback.
+ */
+
+/* See hero.css for why this override is here: .section and .on-charcoal tie
+   on specificity and .section wins the cascade order, so every charcoal
+   ground section needs its own background/color reassertion. */
+.model-section.on-charcoal {
+  background: var(--charcoal);
+  color: var(--bone);
+}
+
+.model-section .scene-overlay--split {
+  align-self: stretch;
+  min-height: 100svh;
+  align-content: center;
+}
+
+.model-section__lockup {
+  max-width: 30rem;
+  background: var(--charcoal-raised);
+  padding: var(--space-6);
+}
+
+.model-section__head {
+  color: var(--bone);
+  margin-bottom: var(--space-5);
+}
+
+.model-section__body p {
+  color: var(--bone-70);
+}
+
+.model-section__stats {
+  margin-top: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.model-section__stats li {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  color: var(--bone);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--rule);
+}
+
+.model-section__caption {
+  margin-top: var(--space-5);
+  color: var(--bone-50);
+}
+
+.model-section__panel {
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.model-section__chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.model-section__svg {
+  width: 100%;
+  height: 8rem;
+  overflow: visible;
+}
+
+.model-section__axis {
+  stroke: var(--rule-dark-strong);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.model-section__reference {
+  stroke: var(--bone-30);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.model-section__path {
+  fill: none;
+  stroke: var(--bone);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.model-section__axislabels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bone-50);
+}

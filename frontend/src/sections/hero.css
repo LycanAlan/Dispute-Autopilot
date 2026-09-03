@@ -1,0 +1,75 @@
+/*
+ * hero.css
+ *
+ * Section 1. The overlay stretches the full sticky stage so the title sits
+ * near the top and the stat block sits near the bottom, with the point
+ * cloud materialising behind both.
+ */
+
+/*
+ * .on-charcoal and .section both set background/color at equal specificity,
+ * and .section is the later rule in the bundle (shell.css imports after
+ * tokens.css), so it silently wins the tie and every "on-charcoal" section
+ * on the site renders paper-on-paper. That is a shell ordering defect, not
+ * something owned here; this rule only re-asserts the two properties this
+ * section actually needs, at the specificity required to win locally.
+ */
+.hero.on-charcoal {
+  background: var(--charcoal);
+  color: var(--bone);
+}
+
+.hero .scene-overlay {
+  align-self: stretch;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.hero__lockup {
+  max-width: 46rem;
+}
+
+.hero__title {
+  margin-bottom: var(--space-5);
+  color: var(--bone);
+}
+
+.hero__subtitle {
+  color: var(--bone-70);
+}
+
+.hero__foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.hero__stat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  color: var(--bone);
+}
+
+.hero__stat-label {
+  color: var(--bone-50);
+}
+
+.hero__caption {
+  color: var(--bone-50);
+}
+
+.hero__cue {
+  margin-top: var(--space-4);
+  color: var(--bone-30);
+}
+
+@media (max-width: 40rem) {
+  .hero__lockup {
+    max-width: 100%;
+  }
+}

@@ -1,124 +1,166 @@
 """Metric family C: does the assembler invent facts, and does it refuse when it should?
 
 MEASURED, on a synthetic evidence corpus. Groundedness asks whether the model
-invented facts absent from its source — valid regardless of the source's origin.
+invented facts absent from its source -- a valid question regardless of whether
+the source itself is synthetic.
 
-Half the sample is deliberately degraded (required evidence removed). Note what
-that does and does not measure: the completeness refusal is DETERMINISTIC and
-alternates by construction, so its rate is ~0.5 no matter how the model behaves
-and is not a result. The measured safety property is gate_refusal_rate -- of the
-bundles actually assembled, how many the groundedness gate stopped.
+WHY THIS IS STRATIFIED THE WAY IT IS. An earlier version of this harness
+alternated ACTIVE/PASSIVE *posture*, which is how much evidence was vaulted.
+That is the wrong axis. What actually drives the assembler's behaviour is
+whether the vaulted evidence is FAVOURABLE or ADVERSE, and stratifying on
+posture conflated the two. The result was a corpus where almost every case had
+"say nothing" as the correct answer, two bundles carrying claims out of twenty
+cases, and a groundedness figure averaged over empty bundles that score 1.0 for
+free. It measured the harness, not the model.
 
-COST: every assembled case is one paid API call. At N_CASES=20 only the ~10
-ACTIVE-posture cases reach the API; the rest are refused before any spend.
-MAX_API_CALLS is a hard ceiling, not a warning.
+So the corpus is now built on the axis that matters, giving two strata that
+answer two different questions and do not contaminate each other:
+
+  CONTESTABLE  complete evidence AND a recorded AVS match. The model has a real
+               case to argue, which is the only situation in which fabrication
+               is even possible -- you cannot measure invention on a case where
+               the honest answer is silence. This stratum measures GROUNDEDNESS.
+
+  ADVERSE      complete evidence but a recorded AVS mismatch. The honest answer
+               is to decline. This stratum measures REFUSAL: does the assembler
+               build a representment the evidence does not support?
+
+Cases failing the completeness gate never reach the API at all and are counted
+separately. That refusal is deterministic and is not a model property.
+
+COST: one paid API call per case in either stratum. Real token usage is
+captured from the API response and reported in the output -- this harness does
+not estimate its own bill.
 """
 import json
-from pathlib import Path
 
-from dispute_autopilot.assembler.assemble import assemble
+from dispute_autopilot.assembler.assemble import (
+    ANTHROPIC_EFFORT, ANTHROPIC_MODEL, assemble, usage_summary,
+)
 from dispute_autopilot.assembler.verify import verify
 from dispute_autopilot.casefile.completeness import assess
 from dispute_autopilot.casefile.synthesize import synthesize_casefile
 from dispute_autopilot.contracts import Dispute, Posture
 from dispute_autopilot.economics.cost_model import to_inr
 from dispute_autopilot.ingest.load import load_raw
-
-# ONE definition, in eval/__init__.py -- see below. Hand-writing
-# parents[N] per file gets the depth wrong the moment a module moves.
 from eval import REPORTS
 
-# Family C must describe the model the system actually ships with. Reporting
-# generation quality from a cheap model while demoing an expensive one is the
-# kind of unfalsifiable claim this project's positioning criticises.
-from dispute_autopilot.assembler.assemble import ANTHROPIC_EFFORT, ANTHROPIC_MODEL
-
 ASSEMBLER_MODEL_NOTE = f"{ANTHROPIC_MODEL} at effort={ANTHROPIC_EFFORT}"
+REASON = "fraud_card_absent"
 
-N_CASES = 20
-# HARD SPEND GUARD. Every assembled case is one paid API call. The budget for
-# this project is a few dollars total, so a runaway loop is a real risk, not a
-# theoretical one. This ceiling raises rather than warns.
-MAX_API_CALLS = 40
+N_PER_STRATUM = 10
+
+# HARD SPEND GUARD. Every stratified case is one paid API call. The budget for
+# this project is a few dollars total, so a runaway loop is a real risk rather
+# than a theoretical one. This ceiling raises; it does not warn.
+MAX_API_CALLS = 30
 
 
-def main(n: int = N_CASES) -> dict:
-    if n > MAX_API_CALLS:
-        raise ValueError(f"n={n} exceeds MAX_API_CALLS={MAX_API_CALLS}")
-    df = load_raw(sample_n=5000).sample(n, random_state=0)
-    grounded_scores, complete_cases = [], 0
-    incomplete_refusals = 0   # blocked by the completeness gate, no API call made
-    gate_refusals = 0         # assembled, then refused for an ungrounded claim
-    api_calls = 0
-    # Without this, a groundedness of 1.0 is uninterpretable:
-    # EvidenceBundle.groundedness returns 1.0 for an EMPTY claim list, so a
-    # model that attributed nothing at all scores identically to one that
-    # attributed everything correctly. Recording the counts is what makes the
-    # headline number mean something.
-    claim_counts: list[int] = []
+def _classify(casefile) -> str | None:
+    """CONTESTABLE, ADVERSE, or None if the completeness gate refuses first."""
+    _, missing = assess(casefile, REASON)
+    if missing:
+        return None
+    billing = casefile.items.get("billing_proof")
+    if billing is None:
+        return None
+    return "adverse" if "mismatch" in billing.value.lower() else "contestable"
+
+
+def build_corpus(n_per_stratum: int = N_PER_STRATUM, scan: int = 5000) -> dict:
+    """Select cases WITHOUT calling the API, so the sample is knowable up front."""
+    df = load_raw(sample_n=scan)
+    strata: dict[str, list] = {"contestable": [], "adverse": []}
+    incomplete = 0
 
     for i, (_, row) in enumerate(df.iterrows()):
-        # Alternate: half full evidence, half deliberately degraded.
-        posture = Posture.ACTIVE if i % 2 == 0 else Posture.PASSIVE
-        casefile = synthesize_casefile(row, posture, seed=i)
-        _, missing = assess(casefile, "fraud_card_absent")
-
-        if missing:
-            incomplete_refusals += 1
+        # ACTIVE throughout: posture is no longer the experimental variable, so
+        # holding it fixed removes it as a confound.
+        casefile = synthesize_casefile(row, Posture.ACTIVE, seed=i)
+        kind = _classify(casefile)
+        if kind is None:
+            incomplete += 1
             continue
+        if len(strata[kind]) < n_per_stratum:
+            strata[kind].append((i, row, casefile))
+        if all(len(v) >= n_per_stratum for v in strata.values()):
+            break
 
-        complete_cases += 1
-        api_calls += 1
-        if api_calls > MAX_API_CALLS:
-            raise RuntimeError(f"spend guard tripped at {api_calls} calls")
-        # USD -> INR once, at the boundary, exactly as run_eval.py, baselines.py,
-        # find_demo_rows.py and ui/app.py all do. TransactionAmt is dollars;
-        # Dispute.amount_inr is rupees and is quoted verbatim into the assembler
-        # prompt ("Dispute ... for INR {amount_inr}") -- feeding it raw USD would
-        # both mislabel the case shown to the model and understate every amount
-        # in this report by ~83x, the same defect already fixed once in
-        # baselines.py and eval/run_eval.py (commit 40c1ffd).
-        dispute = Dispute(dispute_id=f"eval_{i}", transaction_id=int(row["TransactionID"]),
-                          amount_inr=float(to_inr(row["TransactionAmt"])),
-                          reason_code="fraud_card_absent")
-        bundle = verify(assemble(dispute, casefile), casefile)
-        grounded_scores.append(bundle.groundedness)
-        claim_counts.append(len(bundle.claims))
-        if any(not c.grounded for c in bundle.claims):
-            gate_refusals += 1
+    return {"strata": strata, "incomplete_scanned": incomplete}
 
-    mean_g = sum(grounded_scores) / len(grounded_scores) if grounded_scores else 0.0
 
-    # Rule of three: with zero observed failures in k trials, the 95% upper
-    # bound on the true rate is about 3/k. At these sample sizes an honest
-    # bound matters more than a flattering point estimate -- "0 ungrounded
-    # claims in 10 bundles" is worth far less than it sounds without it.
-    k = len(grounded_scores)
-    ungrounded_upper_95 = round(3.0 / k, 4) if k and mean_g == 1.0 else None
+def main(n_per_stratum: int = N_PER_STRATUM) -> dict:
+    corpus = build_corpus(n_per_stratum)
+    strata = corpus["strata"]
+    planned = sum(len(v) for v in strata.values())
+    if planned > MAX_API_CALLS:
+        raise ValueError(f"{planned} calls exceeds MAX_API_CALLS={MAX_API_CALLS}")
+
+    results: dict[str, dict] = {}
+    api_calls = 0
+
+    for kind, cases in strata.items():
+        groundedness, claim_counts, declined, gate_refused = [], [], 0, 0
+
+        for idx, row, casefile in cases:
+            api_calls += 1
+            if api_calls > MAX_API_CALLS:
+                raise RuntimeError(f"spend guard tripped at {api_calls} calls")
+
+            dispute = Dispute(
+                dispute_id=f"eval_{kind}_{idx}",
+                transaction_id=int(row["TransactionID"]),
+                amount_inr=float(to_inr(row["TransactionAmt"])),
+                reason_code=REASON,
+            )
+            bundle = verify(assemble(dispute, casefile), casefile)
+            claim_counts.append(len(bundle.claims))
+
+            if not bundle.claims and not bundle.fields:
+                # The model declined to argue at all. On the adverse stratum
+                # this is the CORRECT answer, so it is counted, never averaged
+                # into groundedness -- an empty bundle scores 1.0 for free.
+                declined += 1
+                continue
+            if any(not c.grounded for c in bundle.claims) or not bundle.claims:
+                gate_refused += 1
+            if bundle.claims:
+                groundedness.append(bundle.groundedness)
+
+        k = len(groundedness)
+        results[kind] = {
+            "n": len(cases),
+            "n_declined_by_model": declined,
+            "n_attributed_bundles": k,
+            "mean_claims_per_bundle": (
+                round(sum(claim_counts) / len(cases), 2) if cases else None
+            ),
+            "groundedness_mean_over_attributed": (
+                round(sum(groundedness) / k, 4) if k else None
+            ),
+            "gate_refusal_rate": round(gate_refused / len(cases), 4) if cases else None,
+            # Rule of three: with zero observed failures in k trials the 95%
+            # upper bound on the true rate is about 3/k. At these sample sizes
+            # the bound matters more than the point estimate.
+            "ungrounded_upper_bound_95": (
+                round(3.0 / k, 4) if k and all(g == 1.0 for g in groundedness) else None
+            ),
+        }
 
     out = {
         "basis": "MEASURED on a synthetic evidence corpus",
         "model": ASSEMBLER_MODEL_NOTE,
-        "n_cases": n,
-        "n_assembled": complete_cases,
-        "n_api_calls": api_calls,
-        "groundedness_mean": round(mean_g, 4),
-        "total_claims": sum(claim_counts),
-        "mean_claims_per_bundle": round(sum(claim_counts) / k, 2) if k else None,
-        "bundles_with_zero_claims": sum(1 for c in claim_counts if c == 0),
-        # A groundedness of 1.0 means nothing unless claims were actually made.
-        # If this is False, the headline number is vacuous and must not be
-        # reported as a result.
-        "groundedness_is_interpretable": bool(k and all(c > 0 for c in claim_counts)),
-        "hallucination_rate": round(1.0 - mean_g, 4),
-        # Of the bundles actually assembled, how many did the refusal gate stop.
-        # THIS is the safety property under test.
-        "gate_refusal_rate": round(gate_refusals / k, 4) if k else None,
-        # Reported for completeness and explicitly NOT a measured model
-        # property: the harness alternates ACTIVE/PASSIVE posture, so this is
-        # ~0.5 by construction. It says nothing about the assembler.
-        "completeness_refusal_rate_BY_CONSTRUCTION": round(incomplete_refusals / n, 4),
-        "ungrounded_rate_upper_bound_95": ungrounded_upper_95,
+        "design": (
+            "Stratified on evidence favourability, not vault posture. "
+            "CONTESTABLE cases measure groundedness (the model has a real case "
+            "to argue, so fabrication is possible). ADVERSE cases measure "
+            "refusal (the honest answer is to decline)."
+        ),
+        "contestable": results.get("contestable"),
+        "adverse": results.get("adverse"),
+        "cases_refused_before_any_api_call": corpus["incomplete_scanned"],
+        # Measured from the API responses, not estimated.
+        "actual_usage": usage_summary(),
     }
     REPORTS.mkdir(parents=True, exist_ok=True)
     (REPORTS / "generation_metrics.json").write_text(json.dumps(out, indent=2))

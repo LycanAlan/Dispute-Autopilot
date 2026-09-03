@@ -28,6 +28,30 @@ from dispute_autopilot.contracts import CaseFile, Claim, Dispute, EvidenceBundle
 # unfalsifiable vendor claim this project's README criticises.
 ANTHROPIC_MODEL = "claude-sonnet-5"
 ANTHROPIC_EFFORT = "medium"
+
+# Published Sonnet 5 rates, USD per million tokens. Used only to report what a
+# run actually cost. A project that measures everything else should not be
+# estimating its own bill from character counts, which is what it was doing.
+USD_PER_MTOK_IN = 2.0
+USD_PER_MTOK_OUT = 10.0
+
+# Every anthropic_provider call appends its real usage here. Read it after a
+# run to get measured token counts instead of an estimate.
+USAGE_LOG: list[dict] = []
+
+
+def usage_summary() -> dict:
+    """Actual tokens and actual cost for every call made this process."""
+    calls = len(USAGE_LOG)
+    tin = sum(u["input_tokens"] for u in USAGE_LOG)
+    tout = sum(u["output_tokens"] for u in USAGE_LOG)
+    return {
+        "api_calls": calls,
+        "input_tokens": tin,
+        "output_tokens": tout,
+        "mean_output_tokens": round(tout / calls, 1) if calls else None,
+        "usd": round(tin * USD_PER_MTOK_IN / 1e6 + tout * USD_PER_MTOK_OUT / 1e6, 6),
+    }
 OPENAI_MODEL = "gpt-4.1"
 
 # (system, prompt, schema) -> a validated instance of schema
@@ -68,6 +92,10 @@ def anthropic_provider(system: str, prompt: str, schema: type[BaseModel]) -> Bas
         output_format=schema,
         output_config={"effort": ANTHROPIC_EFFORT},
     )
+    USAGE_LOG.append({
+        "input_tokens": response.usage.input_tokens,
+        "output_tokens": response.usage.output_tokens,
+    })
     return response.parsed_output
 
 

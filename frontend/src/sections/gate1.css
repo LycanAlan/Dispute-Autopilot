@@ -1,0 +1,131 @@
+/*
+ * gate1.css
+ *
+ * Section 6 only. Selectors are scoped under .gate1 / .gate1__*, and reuse
+ * the shared primitives from core/shell.css (.readout, .kicker, .prose,
+ * .title, .micro, .figure-num) rather than redefining them. Colours come
+ * from tokens.css custom properties only.
+ */
+
+.gate1 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: var(--space-9);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .gate1 {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-7);
+  }
+}
+
+.gate1__text .title {
+  margin-bottom: var(--space-5);
+}
+
+/* A larger, quieter statement of the reversal. Ink, not a decision colour:
+   this section is not yet the verdict, it is the mechanism behind it. */
+.gate1__quote {
+  margin: var(--space-6) 0 0;
+  padding-left: var(--space-5);
+  border-left: 2px solid var(--rule-strong);
+  font-family: var(--font-display);
+  font-size: var(--type-lede);
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--ink);
+  max-width: var(--measure-tight);
+}
+
+.gate1__panel {
+  border-top: 2px solid var(--ink);
+  padding-top: var(--space-4);
+}
+
+.gate1__chart {
+  width: 100%;
+  height: auto;
+  margin-top: var(--space-5);
+  overflow: visible;
+}
+
+.gate1__axis {
+  stroke: var(--rule-strong);
+  stroke-width: 1;
+}
+
+.gate1__line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.gate1__guide {
+  stroke: var(--ink-30);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.gate1__marker {
+  fill: var(--contest);
+  stroke: var(--paper);
+  stroke-width: 1.5;
+}
+
+.gate1__marker-group {
+  transition: opacity var(--dur-fast) linear;
+}
+
+.gate1__tick {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  fill: var(--ink-50);
+}
+
+.gate1__figure {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.gate1__figure .figure-num {
+  color: var(--contest);
+}
+
+.gate1__signals {
+  margin-top: var(--space-2);
+}
+
+/* The evidence text is a sentence, not a number: let it wrap under its
+   label instead of forcing the shared .readout two column grid. */
+.gate1__signals .readout {
+  grid-template-columns: 1fr;
+  row-gap: var(--space-1);
+}
+
+.gate1__signals .readout__value {
+  white-space: normal;
+  font-weight: 400;
+}
+
+/* Dark ground twin, in case this section is ever placed on charcoal. Kept
+   here rather than assumed, since .on-charcoal flips the tokens this file
+   already reads. */
+.on-charcoal .gate1__quote {
+  border-left-color: var(--rule-dark-strong);
+  color: var(--bone);
+}
+
+.on-charcoal .gate1__panel {
+  border-top-color: var(--bone);
+}
+
+.on-charcoal .gate1__marker {
+  stroke: var(--charcoal);
+}

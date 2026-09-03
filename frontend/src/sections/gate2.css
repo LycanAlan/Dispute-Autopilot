@@ -1,0 +1,191 @@
+/*
+ * gate2.css
+ *
+ * Section 7 only. Selectors are scoped under .gate2 / .gate2__*, and reuse
+ * the shared primitives from core/shell.css (.readout, .kicker, .prose,
+ * .title, .micro, .small, .is-contest / .is-review / .is-accept) rather than
+ * redefining them. Every colour is a var() onto tokens.css; nothing here is a
+ * literal hex.
+ */
+
+.gate2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-9);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .gate2 {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-7);
+  }
+}
+
+.gate2__text .title {
+  margin-bottom: var(--space-5);
+}
+
+.gate2__quote {
+  margin: var(--space-6) 0 0;
+  padding-left: var(--space-5);
+  border-left: 2px solid var(--rule-strong);
+  font-family: var(--font-display);
+  font-size: var(--type-lede);
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--ink);
+  max-width: var(--measure-tight);
+}
+
+.gate2__panel {
+  border-top: 2px solid var(--ink);
+  padding-top: var(--space-4);
+  transition: opacity var(--dur-fast) linear;
+}
+
+/* --------------------------------------------------------------- badge */
+
+.gate2__badge-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.gate2__badge {
+  display: inline-block;
+  padding: 0.3em 0.7em;
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  transition: background-color var(--dur-fast) linear, color var(--dur-fast) linear;
+}
+
+.gate2__badge--contest {
+  background: var(--contest);
+  color: var(--paper);
+}
+
+.gate2__badge--review {
+  background: var(--review);
+  color: var(--ink);
+}
+
+.gate2__badge--accept {
+  background: var(--accept);
+  color: var(--paper);
+}
+
+/* -------------------------------------------------------------- slider */
+
+.gate2__slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: var(--space-4);
+  margin-top: var(--space-6);
+  background: transparent;
+  cursor: pointer;
+}
+
+.gate2__slider:focus-visible {
+  outline: 2px solid var(--contest);
+  outline-offset: 4px;
+}
+
+/* Track: one flat rule, same weight as the report rules elsewhere on the
+   page, not a UI-kit gradient groove. */
+.gate2__slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--rule-strong);
+}
+
+.gate2__slider::-moz-range-track {
+  height: 2px;
+  background: var(--rule-strong);
+}
+
+.gate2__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 3px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.gate2__slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 3px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.gate2__scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-2);
+}
+
+/* ---------------------------------------------------------------- math */
+
+.gate2__math {
+  margin-top: var(--space-6);
+}
+
+.gate2__row--result .readout__value {
+  font-size: var(--type-lede);
+  font-weight: 600;
+}
+
+.gate2__row--muted {
+  opacity: 0.72;
+}
+
+.gate2__row--muted .readout__value {
+  font-weight: 400;
+  white-space: normal;
+}
+
+.gate2__row--muted s {
+  text-decoration-thickness: 1.5px;
+}
+
+.gate2__note {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+
+/* -------------------------------------------------------- dark ground */
+
+.on-charcoal .gate2__quote {
+  border-left-color: var(--rule-dark-strong);
+  color: var(--bone);
+}
+
+.on-charcoal .gate2__panel {
+  border-top-color: var(--bone);
+}
+
+.on-charcoal .gate2__slider::-webkit-slider-runnable-track,
+.on-charcoal .gate2__slider::-moz-range-track {
+  background: var(--rule-dark-strong);
+}
+
+.on-charcoal .gate2__slider::-webkit-slider-thumb,
+.on-charcoal .gate2__slider::-moz-range-thumb {
+  background: var(--bone);
+  border-color: var(--charcoal);
+  box-shadow: 0 0 0 1px var(--bone);
+}

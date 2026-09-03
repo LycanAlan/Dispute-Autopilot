@@ -1,0 +1,121 @@
+/*
+ * measured.css
+ *
+ * Section 9. Three family panels divided by a hairline, so the separation the
+ * headline promises is visible before a word is read. Bars are small
+ * multiples: same shape, same scale rule within a family, never compared
+ * across families.
+ */
+
+/*
+ * tokens.css declares .on-charcoal (background: var(--charcoal)) before
+ * shell.css declares .section (background: var(--paper)); both are single
+ * class selectors, so at equal specificity shell.css wins by source order
+ * and the dark ground silently loses on every section that requests it.
+ * Neither file is owned here, so this section re-asserts its own ground at
+ * higher specificity instead of depending on load order between two files
+ * this agent does not touch.
+ */
+#measured.on-charcoal {
+  background: var(--charcoal);
+  color: var(--bone);
+}
+
+.measured__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.measured__head .title {
+  max-width: var(--measure);
+}
+
+.measured__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+}
+
+.measured__family {
+  padding: var(--space-6) var(--space-6) var(--space-5) 0;
+  border-left: 1px solid var(--rule);
+  padding-left: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.measured__family:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.measured__tag {
+  font-size: var(--type-small);
+  color: var(--ink-70);
+}
+
+.measured__tag strong {
+  color: inherit;
+  font-weight: 500;
+}
+
+.measured__line {
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+}
+
+.measured__value {
+  font-size: var(--type-head);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.measured__bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.measured__bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.measured__bar .meter {
+  color: var(--bone);
+}
+
+.measured__basis {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+  line-height: 1.5;
+}
+
+.measured__footnote {
+  max-width: var(--measure);
+  padding: var(--space-5) var(--space-6);
+  border-top: 2px solid var(--bone);
+  border-bottom: 1px solid var(--rule);
+}
+
+@media (max-width: 68rem) {
+  .measured__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .measured__family {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--rule);
+    padding-top: var(--space-6);
+  }
+
+  .measured__family:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+}

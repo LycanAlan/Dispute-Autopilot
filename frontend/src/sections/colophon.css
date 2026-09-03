@@ -1,0 +1,93 @@
+/*
+ * colophon.css
+ *
+ * Section 11. Quiet, confident, well set: the colophon of a printed report,
+ * not a marketing footer. No buttons, no icons, no gradient. Plain text
+ * links only, styled to read as text first and a link second.
+ */
+
+.colophon__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: var(--page-max);
+}
+
+.colophon__notice {
+  margin: 0;
+  padding: var(--space-6) var(--space-7);
+  background: var(--paper-sunk);
+  border-left: 3px solid var(--ink);
+  max-width: var(--measure);
+}
+
+.colophon__notice p {
+  font-family: var(--font-display);
+  font-size: var(--type-lede);
+  line-height: 1.5;
+  letter-spacing: -0.006em;
+}
+
+.colophon__notice p + p {
+  margin-top: var(--space-2);
+}
+
+.colophon__limits .title {
+  margin-bottom: var(--space-5);
+}
+
+.colophon__foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-7);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--rule);
+}
+
+.colophon__name {
+  font-family: var(--font-display);
+  font-size: var(--type-head);
+  margin-bottom: var(--space-2);
+}
+
+.colophon__author p,
+.colophon__meta p {
+  line-height: 1.7;
+}
+
+.colophon__author a,
+.colophon__meta a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.15em;
+}
+
+.colophon__author a:hover,
+.colophon__meta a:hover {
+  text-decoration-color: currentColor;
+}
+
+.colophon__meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.colophon__footer {
+  margin-top: var(--space-4);
+  max-width: var(--measure-tight);
+}
+
+@media (max-width: 60rem) {
+  .colophon__foot {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+
+  .colophon__meta {
+    align-items: flex-start;
+  }
+}

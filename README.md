@@ -165,7 +165,9 @@ Concretely: Stage 3 uses `(1 - p)` as a win-probability input, on the reasoning 
 ## Reproduce every number
 
 ```bash
-python -m eval.run_eval
+python -m eval.run_eval             # families A and B, plus the charts
+python -m eval.run_generation_eval  # family C  (makes ~20 paid API calls)
+python -m eval.check_docs           # verify this README against those artifacts
 ```
 
 This single command retrains the model on the temporal split, fits the isotonic calibrator, regenerates `eval/reports/metrics.json` (Family A and Family B, including `pr_curve.png`, `calibration.png`, `threshold_sweep.png`), and prints the same JSON to stdout. There are no manual steps and no numbers typed in by hand anywhere in this README — check any figure above against the regenerated file.

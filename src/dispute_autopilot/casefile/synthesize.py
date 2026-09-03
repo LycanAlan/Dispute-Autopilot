@@ -85,9 +85,14 @@ def synthesize_casefile(row: pd.Series, posture: Posture, seed: int = 0) -> Case
     if True:  # built unconditionally, then filtered by posture below
         items["shipping_proof"] = EvidenceItem(
             field="shipping_proof",
-            value=(f"Delivered, signature captured, AWB {_stable_id(txn_id, seed, 'awb')}"
-                   + (" — shipping address differs from billing address"
-                      if far else " — shipping address matches billing address")),
+            # ASCII only. This string is evidence text: it reaches the assembler
+            # prompt, the Razorpay payload, and the site. An em dash here was
+            # arriving as a mojibake replacement character downstream, and a
+            # section agent had started sanitising it in markup, which is the
+            # wrong layer to fix an encoding defect in the data itself.
+            value=(f"Delivered, signature captured, AWB {_stable_id(txn_id, seed, 'awb')}. "
+                   + ("Shipping address differs from billing address"
+                      if far else "Shipping address matches billing address")),
             source="carrier_tracking",
         )
         items["customer_communication"] = EvidenceItem(

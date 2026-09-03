@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-03T20:43:01.099321+00:00",
+  "generated_at": "2026-09-03T21:50:43.573456+00:00",
   "n_total": 590540,
   "n_sampled": 100000,
   "sampling": {
@@ -1220,7 +1220,7 @@
             "access_activity_log": "Session from not recorded device (not recorded), session 6C6AB3853B1B",
             "billing_proof": "AVS mismatch on name or postcode (M1/M2/M6 = -/-/F)",
             "customer_communication": "Order confirmation emailed to mail.com; no reply received. Thread A041E47BB011",
-            "shipping_proof": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+            "shipping_proof": "Delivered, signature captured, AWB A11475423B50. Shipping address matches billing address",
             "term_and_conditions": "T&C v3.1 accepted at checkout, ref 56696D785351"
           },
           "claims": [
@@ -1240,7 +1240,7 @@
               "grounded": true
             },
             {
-              "text": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+              "text": "Delivered, signature captured, AWB A11475423B50. Shipping address matches billing address",
               "source_field": "carrier_tracking",
               "grounded": true
             },
@@ -1274,7 +1274,7 @@
           },
           "shipping_proof": {
             "field": "shipping_proof",
-            "value": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+            "value": "Delivered, signature captured, AWB A11475423B50. Shipping address matches billing address",
             "source": "carrier_tracking"
           },
           "customer_communication": {
@@ -1290,7 +1290,7 @@
           "access_activity_log": "Session from not recorded device (not recorded), session 6C6AB3853B1B",
           "billing_proof": "AVS mismatch on name or postcode (M1/M2/M6 = -/-/F)",
           "customer_communication": "Order confirmation emailed to mail.com; no reply received. Thread A041E47BB011",
-          "shipping_proof": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+          "shipping_proof": "Delivered, signature captured, AWB A11475423B50. Shipping address matches billing address",
           "term_and_conditions": "T&C v3.1 accepted at checkout, ref 56696D785351"
         },
         "claims": [
@@ -1310,7 +1310,7 @@
             "grounded": true
           },
           {
-            "text": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+            "text": "Delivered, signature captured, AWB A11475423B50. Shipping address matches billing address",
             "source_field": "carrier_tracking",
             "grounded": true
           },
@@ -1850,7 +1850,7 @@
         },
         "shipping_proof": {
           "field": "shipping_proof",
-          "value": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+          "value": "Delivered, signature captured, AWB A11475423B50. Shipping address matches billing address",
           "source": "carrier_tracking"
         },
         "customer_communication": {
@@ -1877,7 +1877,7 @@
         "grounded": true
       },
       {
-        "text": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+        "text": "Delivered, signature captured, AWB A11475423B50. Shipping address matches billing address",
         "source_field": "carrier_tracking",
         "grounded": true
       },

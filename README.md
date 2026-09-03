@@ -120,6 +120,24 @@ This has three consequences that shape the whole project:
 
 The "linked posterior transactions" rule also clusters card entities across the label, which is why the train/calibration/test split is temporal (earliest 70% / next 10% / final 20% by `TransactionDT`) rather than random — a random split would leak clustered entities across the boundary.
 
+## What measurement caught
+
+Fifteen defects in this codebase were found by running things, not by reading them.
+None failed a test at the time it existed; several were introduced by the fix for an
+earlier one. Nine share a single shape — something produced, verified, or configured,
+with nothing downstream consuming it.
+
+The most expensive, had they shipped: every live demo score computed against different
+category codes than the model trained on; a published rules baseline that fired on 2
+rows out of 590,540 because dollar amounts were read as rupees; a groundedness verifier
+whose verdict was attached to the decision and then ignored; and a case file that
+asserted a failed billing check for AVS data that was never recorded.
+
+The evaluation harness itself contained three of the fifteen. A measurement apparatus is
+code, and it gets audited like code or it lies confidently.
+
+Full log with causes and costs: **[docs/FINDINGS.md](docs/FINDINGS.md)**.
+
 ## Known limitations
 
 Stated up front, not in a footnote, because reporting its own limitations is the strongest thing this submission has.

@@ -876,12 +876,22 @@ def main(root: pathlib.Path = ROOT) -> int:
             )
         ]
         for switch in ("flat", "still"):
+            # Matched against the RAW file, not against uncommented(), which
+            # strips the quote characters out of string tokens. The pattern
+            # below requires quotes, so run over the tokenised text it could
+            # never match anything and both of these checks passed vacuously on
+            # every input, including a frontend with the kill switches deleted.
+            # Two agents reported this independently before it was believed.
+            #
+            # A comment reading "?flat=1" does not satisfy it: the quotes are
+            # what distinguish naming the parameter in code from mentioning it
+            # in prose, and the file must also read the query string at all.
             owners = [
                 p
                 for p in readers
-                if any(
-                    re.search(r"""['"]""" + switch + r"""['"]""", text)
-                    for _, text in uncommented(p)
+                if re.search(
+                    r"""['"]""" + switch + r"""['"]""",
+                    p.read_text(encoding="utf-8", errors="replace"),
                 )
             ]
             check(

@@ -1,0 +1,1907 @@
+{
+  "generated_at": "2026-09-03T20:43:01.099321+00:00",
+  "n_total": 590540,
+  "n_sampled": 100000,
+  "sampling": {
+    "method": "stratified on isFraud, proportional allocation with a floor on the positive class, sampled without replacement",
+    "seed": 20260904,
+    "minimum_positives": 3000,
+    "floor_binding": false,
+    "n_positive_total": 20663,
+    "n_negative_total": 569877,
+    "n_positive_sampled": 3499,
+    "n_negative_sampled": 96501,
+    "positive_rate_full": 0.03499000914417313,
+    "positive_rate_sampled": 0.03499
+  },
+  "split": {
+    "train_end_x": 0.6583008001853895,
+    "calib_end_x": 0.7699018825822839,
+    "train_frac": 0.7,
+    "calib_frac": 0.1,
+    "train_end_row_frac": 0.7,
+    "calib_end_row_frac": 0.8,
+    "train_rows": 413378,
+    "calib_rows": 59054,
+    "test_rows": 118108,
+    "basis": "70/10/20 by row count on TransactionDT order. train_end_x and calib_end_x are where those row boundaries fall on the normalised time axis the point cloud is drawn on."
+  },
+  "family_a": {
+    "basis": "MEASURED on real labels, held-out temporal split",
+    "n_test": 118108,
+    "positive_rate": 0.034409184813899145,
+    "pr_auc": 0.4243033986099751,
+    "pr_auc_uncalibrated": 0.4404662993074733,
+    "brier_uncalibrated": 0.0779807406589153,
+    "roc_auc": 0.8699734356224438,
+    "brier": 0.024438582424854104,
+    "operating_threshold": 0.33366666666666667,
+    "operating_threshold_basis": "maximises F1 -- chosen on model quality, independent of any cost assumption",
+    "precision_at_threshold": 0.5568022440392707,
+    "recall_at_threshold": 0.390748031496063,
+    "f1_at_threshold": 0.459224985540775
+  },
+  "family_b": {
+    "basis": "SIMULATED under config/costs.yaml assumptions",
+    "assumptions": {
+      "usd_to_inr": 83.0,
+      "contest_fee_inr": 750.0,
+      "ops_cost_inr": 250.0,
+      "base_win_rate_fraud_coded": 0.171
+    },
+    "ev_optimal_threshold": 0.001,
+    "ev_optimal_threshold_is_at_sweep_boundary": true,
+    "precision_at_ev_threshold": 0.037403088209412835,
+    "recall_at_ev_threshold": 0.9936023622047244,
+    "net_inr": {
+      "none": -53672549.86,
+      "all": -3249301.97,
+      "rules": -48810829.98,
+      "model": -2706762.63
+    },
+    "confusion_counts": {
+      "none": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 114044,
+        "fn": 4064
+      },
+      "all": {
+        "tp": 4064,
+        "fp": 114044,
+        "tn": 0,
+        "fn": 0
+      },
+      "rules": {
+        "tp": 139,
+        "fp": 2832,
+        "tn": 111212,
+        "fn": 3925
+      },
+      "model": {
+        "tp": 4038,
+        "fp": 103921,
+        "tn": 10123,
+        "fn": 26
+      }
+    },
+    "model_uplift_vs_flag_all_inr": 542539.35
+  },
+  "family_c": {
+    "basis": "MEASURED on a synthetic evidence corpus",
+    "model": "claude-sonnet-5 at effort=medium",
+    "design": "Stratified on evidence favourability, not vault posture. CONTESTABLE cases measure groundedness where the model has a real case to argue. ADVERSE cases measure groundedness under pressure: the evidence argues against the merchant, which is where the temptation to spin is highest. NOTE: the adverse stratum was designed to measure REFUSAL, and earlier runs did show the model declining to argue such cases; instructing it that both fields and claims must be non-empty removed that behaviour. Description corrected post-hoc to match what was measured; no figure in this file was changed and the run was not repeated.",
+    "contestable": {
+      "n": 10,
+      "n_declined_by_model": 0,
+      "n_malformed_responses": 0,
+      "n_attributed_bundles": 10,
+      "mean_claims_per_bundle": 4.7,
+      "groundedness_mean_over_attributed": 1.0,
+      "gate_refusal_rate": 0.0,
+      "ungrounded_upper_bound_95": 0.3
+    },
+    "adverse": {
+      "n": 10,
+      "n_declined_by_model": 0,
+      "n_malformed_responses": 0,
+      "n_attributed_bundles": 10,
+      "mean_claims_per_bundle": 5.0,
+      "groundedness_mean_over_attributed": 1.0,
+      "gate_refusal_rate": 0.0,
+      "ungrounded_upper_bound_95": 0.3
+    },
+    "cases_refused_before_any_api_call": 7,
+    "actual_usage": {
+      "api_calls": 20,
+      "input_tokens": 26962,
+      "output_tokens": 9939,
+      "mean_output_tokens": 496.9,
+      "usd": 0.153314
+    }
+  },
+  "curves": {
+    "pr": [
+      [
+        1.0,
+        0.034409
+      ],
+      [
+        0.995571,
+        0.035577
+      ],
+      [
+        0.995571,
+        0.035577
+      ],
+      [
+        0.993602,
+        0.037403
+      ],
+      [
+        0.993602,
+        0.037403
+      ],
+      [
+        0.993602,
+        0.037404
+      ],
+      [
+        0.993602,
+        0.037404
+      ],
+      [
+        0.993602,
+        0.037404
+      ],
+      [
+        0.993602,
+        0.037405
+      ],
+      [
+        0.992864,
+        0.03776
+      ],
+      [
+        0.992864,
+        0.03776
+      ],
+      [
+        0.992864,
+        0.037761
+      ],
+      [
+        0.992864,
+        0.037761
+      ],
+      [
+        0.968258,
+        0.047343
+      ],
+      [
+        0.951033,
+        0.053713
+      ],
+      [
+        0.951033,
+        0.053713
+      ],
+      [
+        0.92938,
+        0.059589
+      ],
+      [
+        0.904528,
+        0.068967
+      ],
+      [
+        0.904528,
+        0.068968
+      ],
+      [
+        0.901575,
+        0.070135
+      ],
+      [
+        0.861713,
+        0.085176
+      ],
+      [
+        0.841781,
+        0.09162
+      ],
+      [
+        0.841781,
+        0.091622
+      ],
+      [
+        0.841781,
+        0.091625
+      ],
+      [
+        0.841781,
+        0.091627
+      ],
+      [
+        0.841781,
+        0.09163
+      ],
+      [
+        0.841781,
+        0.091632
+      ],
+      [
+        0.841781,
+        0.091635
+      ],
+      [
+        0.826033,
+        0.098822
+      ],
+      [
+        0.826033,
+        0.098825
+      ],
+      [
+        0.800197,
+        0.108331
+      ],
+      [
+        0.800197,
+        0.108335
+      ],
+      [
+        0.798228,
+        0.109237
+      ],
+      [
+        0.797982,
+        0.109207
+      ],
+      [
+        0.797982,
+        0.10921
+      ],
+      [
+        0.797982,
+        0.109214
+      ],
+      [
+        0.797982,
+        0.109218
+      ],
+      [
+        0.758858,
+        0.129021
+      ],
+      [
+        0.715305,
+        0.15948
+      ],
+      [
+        0.715305,
+        0.159489
+      ],
+      [
+        0.715305,
+        0.159497
+      ],
+      [
+        0.715305,
+        0.159506
+      ],
+      [
+        0.690207,
+        0.174658
+      ],
+      [
+        0.688238,
+        0.175361
+      ],
+      [
+        0.688238,
+        0.175371
+      ],
+      [
+        0.688238,
+        0.175382
+      ],
+      [
+        0.688238,
+        0.175393
+      ],
+      [
+        0.688238,
+        0.175404
+      ],
+      [
+        0.688238,
+        0.175625
+      ],
+      [
+        0.688238,
+        0.175636
+      ],
+      [
+        0.688238,
+        0.175647
+      ],
+      [
+        0.655266,
+        0.202294
+      ],
+      [
+        0.655266,
+        0.20231
+      ],
+      [
+        0.651821,
+        0.204115
+      ],
+      [
+        0.651821,
+        0.204146
+      ],
+      [
+        0.638533,
+        0.21351
+      ],
+      [
+        0.600394,
+        0.236893
+      ],
+      [
+        0.599902,
+        0.237668
+      ],
+      [
+        0.599902,
+        0.237691
+      ],
+      [
+        0.599902,
+        0.237715
+      ],
+      [
+        0.599902,
+        0.237738
+      ],
+      [
+        0.599902,
+        0.237761
+      ],
+      [
+        0.599902,
+        0.237784
+      ],
+      [
+        0.599902,
+        0.237807
+      ],
+      [
+        0.599902,
+        0.23783
+      ],
+      [
+        0.560285,
+        0.272401
+      ],
+      [
+        0.560039,
+        0.272967
+      ],
+      [
+        0.560039,
+        0.273
+      ],
+      [
+        0.560039,
+        0.273065
+      ],
+      [
+        0.517963,
+        0.327933
+      ],
+      [
+        0.510089,
+        0.338283
+      ],
+      [
+        0.510089,
+        0.338339
+      ],
+      [
+        0.510089,
+        0.338394
+      ],
+      [
+        0.510089,
+        0.338449
+      ],
+      [
+        0.510089,
+        0.338504
+      ],
+      [
+        0.510089,
+        0.33856
+      ],
+      [
+        0.510089,
+        0.338615
+      ],
+      [
+        0.510089,
+        0.33867
+      ],
+      [
+        0.509843,
+        0.338562
+      ],
+      [
+        0.509843,
+        0.338617
+      ],
+      [
+        0.506398,
+        0.346406
+      ],
+      [
+        0.49311,
+        0.367572
+      ],
+      [
+        0.492864,
+        0.367456
+      ],
+      [
+        0.492864,
+        0.367523
+      ],
+      [
+        0.492864,
+        0.36759
+      ],
+      [
+        0.492864,
+        0.367658
+      ],
+      [
+        0.492618,
+        0.367542
+      ],
+      [
+        0.492618,
+        0.367609
+      ],
+      [
+        0.492618,
+        0.367812
+      ],
+      [
+        0.492618,
+        0.367879
+      ],
+      [
+        0.492618,
+        0.367947
+      ],
+      [
+        0.492618,
+        0.368015
+      ],
+      [
+        0.492618,
+        0.368082
+      ],
+      [
+        0.492618,
+        0.36815
+      ],
+      [
+        0.465305,
+        0.424372
+      ],
+      [
+        0.465305,
+        0.424467
+      ],
+      [
+        0.421998,
+        0.497967
+      ],
+      [
+        0.421752,
+        0.497822
+      ],
+      [
+        0.421752,
+        0.497966
+      ],
+      [
+        0.420768,
+        0.501613
+      ],
+      [
+        0.420768,
+        0.501761
+      ],
+      [
+        0.394193,
+        0.548818
+      ],
+      [
+        0.394193,
+        0.549006
+      ],
+      [
+        0.394193,
+        0.549194
+      ],
+      [
+        0.390748,
+        0.555245
+      ],
+      [
+        0.390748,
+        0.556802
+      ],
+      [
+        0.390748,
+        0.556998
+      ],
+      [
+        0.390502,
+        0.556842
+      ],
+      [
+        0.356545,
+        0.628361
+      ],
+      [
+        0.356299,
+        0.6282
+      ],
+      [
+        0.356299,
+        0.628745
+      ],
+      [
+        0.340797,
+        0.668114
+      ],
+      [
+        0.340797,
+        0.668436
+      ],
+      [
+        0.340797,
+        0.668759
+      ],
+      [
+        0.340551,
+        0.668599
+      ],
+      [
+        0.321112,
+        0.708854
+      ],
+      [
+        0.317421,
+        0.713101
+      ],
+      [
+        0.317421,
+        0.713496
+      ],
+      [
+        0.316929,
+        0.713178
+      ],
+      [
+        0.294291,
+        0.752675
+      ],
+      [
+        0.294045,
+        0.752519
+      ],
+      [
+        0.294045,
+        0.752993
+      ],
+      [
+        0.293553,
+        0.752681
+      ],
+      [
+        0.293553,
+        0.753157
+      ],
+      [
+        0.28937,
+        0.767624
+      ],
+      [
+        0.24877,
+        0.809448
+      ],
+      [
+        0.24877,
+        0.810096
+      ],
+      [
+        0.24877,
+        0.810746
+      ],
+      [
+        0.248524,
+        0.810594
+      ],
+      [
+        0.236959,
+        0.816794
+      ],
+      [
+        0.236959,
+        0.817487
+      ],
+      [
+        0.236713,
+        0.817332
+      ],
+      [
+        0.236467,
+        0.817177
+      ],
+      [
+        0.23622,
+        0.817021
+      ],
+      [
+        0.23622,
+        0.817717
+      ],
+      [
+        0.231053,
+        0.825858
+      ],
+      [
+        0.230807,
+        0.825704
+      ],
+      [
+        0.230561,
+        0.825551
+      ],
+      [
+        0.230315,
+        0.825397
+      ],
+      [
+        0.184793,
+        0.84763
+      ],
+      [
+        0.014272,
+        0.84058
+      ],
+      [
+        0.007628,
+        0.837838
+      ],
+      [
+        0.007382,
+        0.833333
+      ],
+      [
+        0.0,
+        1.0
+      ]
+    ],
+    "calibration": [
+      [
+        0.001867,
+        0.003687
+      ],
+      [
+        0.003472,
+        0.006273
+      ],
+      [
+        0.007381,
+        0.010265
+      ],
+      [
+        0.009806,
+        0.010017
+      ],
+      [
+        0.013293,
+        0.014279
+      ],
+      [
+        0.018631,
+        0.020294
+      ],
+      [
+        0.03134,
+        0.028586
+      ],
+      [
+        0.058599,
+        0.058905
+      ],
+      [
+        0.282938,
+        0.236893
+      ]
+    ]
+  },
+  "cases": {
+    "contest": {
+      "row": 7,
+      "dispute_id": "disp_7",
+      "transaction_id": 2987007,
+      "amount_inr": 35067.5,
+      "reason_code": "fraud_card_absent",
+      "posture": "ACTIVE",
+      "p_chargeback": 0.05811138014527845,
+      "top_reasons": [
+        [
+          "D2",
+          0.1151
+        ],
+        [
+          "amt_decimal",
+          0.1135
+        ],
+        [
+          "C1",
+          0.1102
+        ],
+        [
+          "C14",
+          0.0797
+        ],
+        [
+          "P_emaildomain",
+          0.0676
+        ]
+      ],
+      "features": {
+        "TransactionID": 2987007,
+        "isFraud": 0,
+        "TransactionDT": 86529,
+        "TransactionAmt": 422.5,
+        "ProductCD": "W",
+        "card1": 12695,
+        "card2": 490.0,
+        "card3": 150.0,
+        "card4": "visa",
+        "card5": 226.0,
+        "card6": "debit",
+        "addr1": 325.0,
+        "addr2": 87.0,
+        "dist1": null,
+        "dist2": null,
+        "P_emaildomain": "mail.com",
+        "R_emaildomain": null,
+        "C1": 1.0,
+        "C2": 1.0,
+        "C3": 0.0,
+        "C4": 0.0,
+        "C5": 0.0,
+        "C6": 1.0,
+        "C7": 0.0,
+        "C8": 0.0,
+        "C9": 0.0,
+        "C10": 0.0,
+        "C11": 1.0,
+        "C12": 0.0,
+        "C13": 1.0,
+        "C14": 1.0,
+        "D1": 0.0,
+        "D2": null,
+        "D3": null,
+        "D4": 0.0,
+        "D5": null,
+        "D6": null,
+        "D7": null,
+        "D8": null,
+        "D9": null,
+        "D10": 0.0,
+        "D11": null,
+        "D12": null,
+        "D13": null,
+        "D14": null,
+        "D15": 0.0,
+        "M1": null,
+        "M2": null,
+        "M3": null,
+        "M4": "M0",
+        "M5": "F",
+        "M6": "F",
+        "M7": null,
+        "M8": null,
+        "M9": null,
+        "V1": null,
+        "V2": null,
+        "V3": null,
+        "V4": null,
+        "V5": null,
+        "V6": null,
+        "V7": null,
+        "V8": null,
+        "V9": null,
+        "V10": null,
+        "V11": null,
+        "V12": 0.0,
+        "V13": 0.0,
+        "V14": 1.0,
+        "V15": 0.0,
+        "V16": 0.0,
+        "V17": 0.0,
+        "V18": 0.0,
+        "V19": 1.0,
+        "V20": 1.0,
+        "V21": 0.0,
+        "V22": 0.0,
+        "V23": 1.0,
+        "V24": 1.0,
+        "V25": 1.0,
+        "V26": 1.0,
+        "V27": 0.0,
+        "V28": 0.0,
+        "V29": 0.0,
+        "V30": 0.0,
+        "V31": 0.0,
+        "V32": 0.0,
+        "V33": 0.0,
+        "V34": 0.0,
+        "V35": 0.0,
+        "V36": 0.0,
+        "V37": 1.0,
+        "V38": 1.0,
+        "V39": 0.0,
+        "V40": 0.0,
+        "V41": 1.0,
+        "V42": 0.0,
+        "V43": 0.0,
+        "V44": 1.0,
+        "V45": 1.0,
+        "V46": 1.0,
+        "V47": 1.0,
+        "V48": 0.0,
+        "V49": 0.0,
+        "V50": 0.0,
+        "V51": 0.0,
+        "V52": 0.0,
+        "V53": 0.0,
+        "V54": 0.0,
+        "V55": 1.0,
+        "V56": 1.0,
+        "V57": 0.0,
+        "V58": 0.0,
+        "V59": 0.0,
+        "V60": 0.0,
+        "V61": 1.0,
+        "V62": 1.0,
+        "V63": 0.0,
+        "V64": 0.0,
+        "V65": 1.0,
+        "V66": 1.0,
+        "V67": 1.0,
+        "V68": 0.0,
+        "V69": 0.0,
+        "V70": 0.0,
+        "V71": 0.0,
+        "V72": 0.0,
+        "V73": 0.0,
+        "V74": 0.0,
+        "V75": 0.0,
+        "V76": 0.0,
+        "V77": 1.0,
+        "V78": 1.0,
+        "V79": 0.0,
+        "V80": 0.0,
+        "V81": 0.0,
+        "V82": 1.0,
+        "V83": 1.0,
+        "V84": 0.0,
+        "V85": 0.0,
+        "V86": 1.0,
+        "V87": 1.0,
+        "V88": 1.0,
+        "V89": 0.0,
+        "V90": 0.0,
+        "V91": 0.0,
+        "V92": 0.0,
+        "V93": 0.0,
+        "V94": 0.0,
+        "V95": 0.0,
+        "V96": 0.0,
+        "V97": 0.0,
+        "V98": 0.0,
+        "V99": 0.0,
+        "V100": 0.0,
+        "V101": 0.0,
+        "V102": 0.0,
+        "V103": 0.0,
+        "V104": 0.0,
+        "V105": 0.0,
+        "V106": 0.0,
+        "V107": 1.0,
+        "V108": 1.0,
+        "V109": 1.0,
+        "V110": 1.0,
+        "V111": 1.0,
+        "V112": 1.0,
+        "V113": 1.0,
+        "V114": 1.0,
+        "V115": 1.0,
+        "V116": 1.0,
+        "V117": 1.0,
+        "V118": 1.0,
+        "V119": 1.0,
+        "V120": 1.0,
+        "V121": 1.0,
+        "V122": 1.0,
+        "V123": 1.0,
+        "V124": 1.0,
+        "V125": 1.0,
+        "V126": 0.0,
+        "V127": 0.0,
+        "V128": 0.0,
+        "V129": 0.0,
+        "V130": 0.0,
+        "V131": 0.0,
+        "V132": 0.0,
+        "V133": 0.0,
+        "V134": 0.0,
+        "V135": 0.0,
+        "V136": 0.0,
+        "V137": 0.0,
+        "V138": null,
+        "V139": null,
+        "V140": null,
+        "V141": null,
+        "V142": null,
+        "V143": null,
+        "V144": null,
+        "V145": null,
+        "V146": null,
+        "V147": null,
+        "V148": null,
+        "V149": null,
+        "V150": null,
+        "V151": null,
+        "V152": null,
+        "V153": null,
+        "V154": null,
+        "V155": null,
+        "V156": null,
+        "V157": null,
+        "V158": null,
+        "V159": null,
+        "V160": null,
+        "V161": null,
+        "V162": null,
+        "V163": null,
+        "V164": null,
+        "V165": null,
+        "V166": null,
+        "V167": null,
+        "V168": null,
+        "V169": null,
+        "V170": null,
+        "V171": null,
+        "V172": null,
+        "V173": null,
+        "V174": null,
+        "V175": null,
+        "V176": null,
+        "V177": null,
+        "V178": null,
+        "V179": null,
+        "V180": null,
+        "V181": null,
+        "V182": null,
+        "V183": null,
+        "V184": null,
+        "V185": null,
+        "V186": null,
+        "V187": null,
+        "V188": null,
+        "V189": null,
+        "V190": null,
+        "V191": null,
+        "V192": null,
+        "V193": null,
+        "V194": null,
+        "V195": null,
+        "V196": null,
+        "V197": null,
+        "V198": null,
+        "V199": null,
+        "V200": null,
+        "V201": null,
+        "V202": null,
+        "V203": null,
+        "V204": null,
+        "V205": null,
+        "V206": null,
+        "V207": null,
+        "V208": null,
+        "V209": null,
+        "V210": null,
+        "V211": null,
+        "V212": null,
+        "V213": null,
+        "V214": null,
+        "V215": null,
+        "V216": null,
+        "V217": null,
+        "V218": null,
+        "V219": null,
+        "V220": null,
+        "V221": null,
+        "V222": null,
+        "V223": null,
+        "V224": null,
+        "V225": null,
+        "V226": null,
+        "V227": null,
+        "V228": null,
+        "V229": null,
+        "V230": null,
+        "V231": null,
+        "V232": null,
+        "V233": null,
+        "V234": null,
+        "V235": null,
+        "V236": null,
+        "V237": null,
+        "V238": null,
+        "V239": null,
+        "V240": null,
+        "V241": null,
+        "V242": null,
+        "V243": null,
+        "V244": null,
+        "V245": null,
+        "V246": null,
+        "V247": null,
+        "V248": null,
+        "V249": null,
+        "V250": null,
+        "V251": null,
+        "V252": null,
+        "V253": null,
+        "V254": null,
+        "V255": null,
+        "V256": null,
+        "V257": null,
+        "V258": null,
+        "V259": null,
+        "V260": null,
+        "V261": null,
+        "V262": null,
+        "V263": null,
+        "V264": null,
+        "V265": null,
+        "V266": null,
+        "V267": null,
+        "V268": null,
+        "V269": null,
+        "V270": null,
+        "V271": null,
+        "V272": null,
+        "V273": null,
+        "V274": null,
+        "V275": null,
+        "V276": null,
+        "V277": null,
+        "V278": null,
+        "V279": 0.0,
+        "V280": 0.0,
+        "V281": 0.0,
+        "V282": 1.0,
+        "V283": 1.0,
+        "V284": 0.0,
+        "V285": 0.0,
+        "V286": 0.0,
+        "V287": 0.0,
+        "V288": 0.0,
+        "V289": 0.0,
+        "V290": 1.0,
+        "V291": 1.0,
+        "V292": 1.0,
+        "V293": 0.0,
+        "V294": 0.0,
+        "V295": 0.0,
+        "V296": 0.0,
+        "V297": 0.0,
+        "V298": 0.0,
+        "V299": 0.0,
+        "V300": 0.0,
+        "V301": 0.0,
+        "V302": 0.0,
+        "V303": 0.0,
+        "V304": 0.0,
+        "V305": 1.0,
+        "V306": 0.0,
+        "V307": 0.0,
+        "V308": 0.0,
+        "V309": 0.0,
+        "V310": 0.0,
+        "V311": 0.0,
+        "V312": 0.0,
+        "V313": 0.0,
+        "V314": 0.0,
+        "V315": 0.0,
+        "V316": 0.0,
+        "V317": 0.0,
+        "V318": 0.0,
+        "V319": 0.0,
+        "V320": 0.0,
+        "V321": 0.0,
+        "V322": null,
+        "V323": null,
+        "V324": null,
+        "V325": null,
+        "V326": null,
+        "V327": null,
+        "V328": null,
+        "V329": null,
+        "V330": null,
+        "V331": null,
+        "V332": null,
+        "V333": null,
+        "V334": null,
+        "V335": null,
+        "V336": null,
+        "V337": null,
+        "V338": null,
+        "V339": null,
+        "id_01": null,
+        "id_02": null,
+        "id_03": null,
+        "id_04": null,
+        "id_05": null,
+        "id_06": null,
+        "id_07": null,
+        "id_08": null,
+        "id_09": null,
+        "id_10": null,
+        "id_11": null,
+        "id_12": null,
+        "id_13": null,
+        "id_14": null,
+        "id_15": null,
+        "id_16": null,
+        "id_17": null,
+        "id_18": null,
+        "id_19": null,
+        "id_20": null,
+        "id_21": null,
+        "id_22": null,
+        "id_23": null,
+        "id_24": null,
+        "id_25": null,
+        "id_26": null,
+        "id_27": null,
+        "id_28": null,
+        "id_29": null,
+        "id_30": null,
+        "id_31": null,
+        "id_32": null,
+        "id_33": null,
+        "id_34": null,
+        "id_35": null,
+        "id_36": null,
+        "id_37": null,
+        "id_38": null,
+        "DeviceType": null,
+        "DeviceInfo": null
+      },
+      "decision": {
+        "dispute_id": "disp_7",
+        "action": "CONTEST",
+        "p_chargeback": 0.05811138014527845,
+        "p_win": 0.40762590799031473,
+        "delta_ev_inr": 14044.421528450363,
+        "w_completeness": 1.0,
+        "missing_required": [],
+        "assumption_notice": "Contest recommendations rest on an inference that is not validated by this dataset: a transaction scored as low chargeback risk that is nevertheless charged back is treated as more likely to be first-party misuse. IEEE-CIS cannot separate first-party misuse from third-party fraud, so this is calibrated to published industry base rates, not measured here.",
+        "bundle": {
+          "dispute_id": "disp_7",
+          "fields": {
+            "access_activity_log": "Session from not recorded device (not recorded), session 6C6AB3853B1B",
+            "billing_proof": "AVS mismatch on name or postcode (M1/M2/M6 = -/-/F)",
+            "customer_communication": "Order confirmation emailed to mail.com; no reply received. Thread A041E47BB011",
+            "shipping_proof": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+            "term_and_conditions": "T&C v3.1 accepted at checkout, ref 56696D785351"
+          },
+          "claims": [
+            {
+              "text": "Session from not recorded device (not recorded), session 6C6AB3853B1B",
+              "source_field": "device_fingerprint",
+              "grounded": true
+            },
+            {
+              "text": "AVS mismatch on name or postcode (M1/M2/M6 = -/-/F)",
+              "source_field": "avs_result",
+              "grounded": true
+            },
+            {
+              "text": "Order confirmation emailed to mail.com; no reply received. Thread A041E47BB011",
+              "source_field": "email_log",
+              "grounded": true
+            },
+            {
+              "text": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+              "source_field": "carrier_tracking",
+              "grounded": true
+            },
+            {
+              "text": "T&C v3.1 accepted at checkout, ref 56696D785351",
+              "source_field": "checkout_log",
+              "grounded": true
+            }
+          ]
+        },
+        "refused_claims": []
+      },
+      "casefile": {
+        "transaction_id": 2987007,
+        "posture": "ACTIVE",
+        "items": {
+          "billing_proof": {
+            "field": "billing_proof",
+            "value": "AVS mismatch on name or postcode (M1/M2/M6 = -/-/F)",
+            "source": "avs_result"
+          },
+          "access_activity_log": {
+            "field": "access_activity_log",
+            "value": "Session from not recorded device (not recorded), session 6C6AB3853B1B",
+            "source": "device_fingerprint"
+          },
+          "term_and_conditions": {
+            "field": "term_and_conditions",
+            "value": "T&C v3.1 accepted at checkout, ref 56696D785351",
+            "source": "checkout_log"
+          },
+          "shipping_proof": {
+            "field": "shipping_proof",
+            "value": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+            "source": "carrier_tracking"
+          },
+          "customer_communication": {
+            "field": "customer_communication",
+            "value": "Order confirmation emailed to mail.com; no reply received. Thread A041E47BB011",
+            "source": "email_log"
+          }
+        }
+      },
+      "bundle": {
+        "dispute_id": "disp_7",
+        "fields": {
+          "access_activity_log": "Session from not recorded device (not recorded), session 6C6AB3853B1B",
+          "billing_proof": "AVS mismatch on name or postcode (M1/M2/M6 = -/-/F)",
+          "customer_communication": "Order confirmation emailed to mail.com; no reply received. Thread A041E47BB011",
+          "shipping_proof": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+          "term_and_conditions": "T&C v3.1 accepted at checkout, ref 56696D785351"
+        },
+        "claims": [
+          {
+            "text": "Session from not recorded device (not recorded), session 6C6AB3853B1B",
+            "source_field": "device_fingerprint",
+            "grounded": true
+          },
+          {
+            "text": "AVS mismatch on name or postcode (M1/M2/M6 = -/-/F)",
+            "source_field": "avs_result",
+            "grounded": true
+          },
+          {
+            "text": "Order confirmation emailed to mail.com; no reply received. Thread A041E47BB011",
+            "source_field": "email_log",
+            "grounded": true
+          },
+          {
+            "text": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+            "source_field": "carrier_tracking",
+            "grounded": true
+          },
+          {
+            "text": "T&C v3.1 accepted at checkout, ref 56696D785351",
+            "source_field": "checkout_log",
+            "grounded": true
+          }
+        ]
+      }
+    },
+    "accept": null,
+    "review": {
+      "row": 0,
+      "dispute_id": "disp_0",
+      "transaction_id": 2987000,
+      "amount_inr": 5685.5,
+      "reason_code": "fraud_card_absent",
+      "posture": "PASSIVE",
+      "p_chargeback": 0.04037558685446009,
+      "top_reasons": [
+        [
+          "D2",
+          0.1151
+        ],
+        [
+          "amt_decimal",
+          0.1135
+        ],
+        [
+          "C1",
+          0.1102
+        ],
+        [
+          "C14",
+          0.0797
+        ],
+        [
+          "P_emaildomain",
+          0.0676
+        ]
+      ],
+      "features": {
+        "TransactionID": 2987000,
+        "isFraud": 0,
+        "TransactionDT": 86400,
+        "TransactionAmt": 68.5,
+        "ProductCD": "W",
+        "card1": 13926,
+        "card2": null,
+        "card3": 150.0,
+        "card4": "discover",
+        "card5": 142.0,
+        "card6": "credit",
+        "addr1": 315.0,
+        "addr2": 87.0,
+        "dist1": 19.0,
+        "dist2": null,
+        "P_emaildomain": null,
+        "R_emaildomain": null,
+        "C1": 1.0,
+        "C2": 1.0,
+        "C3": 0.0,
+        "C4": 0.0,
+        "C5": 0.0,
+        "C6": 1.0,
+        "C7": 0.0,
+        "C8": 0.0,
+        "C9": 1.0,
+        "C10": 0.0,
+        "C11": 2.0,
+        "C12": 0.0,
+        "C13": 1.0,
+        "C14": 1.0,
+        "D1": 14.0,
+        "D2": null,
+        "D3": 13.0,
+        "D4": null,
+        "D5": null,
+        "D6": null,
+        "D7": null,
+        "D8": null,
+        "D9": null,
+        "D10": 13.0,
+        "D11": 13.0,
+        "D12": null,
+        "D13": null,
+        "D14": null,
+        "D15": 0.0,
+        "M1": "T",
+        "M2": "T",
+        "M3": "T",
+        "M4": "M2",
+        "M5": "F",
+        "M6": "T",
+        "M7": null,
+        "M8": null,
+        "M9": null,
+        "V1": 1.0,
+        "V2": 1.0,
+        "V3": 1.0,
+        "V4": 1.0,
+        "V5": 1.0,
+        "V6": 1.0,
+        "V7": 1.0,
+        "V8": 1.0,
+        "V9": 1.0,
+        "V10": 0.0,
+        "V11": 0.0,
+        "V12": 1.0,
+        "V13": 1.0,
+        "V14": 1.0,
+        "V15": 0.0,
+        "V16": 0.0,
+        "V17": 0.0,
+        "V18": 0.0,
+        "V19": 1.0,
+        "V20": 1.0,
+        "V21": 0.0,
+        "V22": 0.0,
+        "V23": 1.0,
+        "V24": 1.0,
+        "V25": 1.0,
+        "V26": 1.0,
+        "V27": 0.0,
+        "V28": 0.0,
+        "V29": 0.0,
+        "V30": 0.0,
+        "V31": 0.0,
+        "V32": 0.0,
+        "V33": 0.0,
+        "V34": 0.0,
+        "V35": null,
+        "V36": null,
+        "V37": null,
+        "V38": null,
+        "V39": null,
+        "V40": null,
+        "V41": null,
+        "V42": null,
+        "V43": null,
+        "V44": null,
+        "V45": null,
+        "V46": null,
+        "V47": null,
+        "V48": null,
+        "V49": null,
+        "V50": null,
+        "V51": null,
+        "V52": null,
+        "V53": 1.0,
+        "V54": 1.0,
+        "V55": 1.0,
+        "V56": 1.0,
+        "V57": 0.0,
+        "V58": 0.0,
+        "V59": 0.0,
+        "V60": 0.0,
+        "V61": 1.0,
+        "V62": 1.0,
+        "V63": 0.0,
+        "V64": 0.0,
+        "V65": 1.0,
+        "V66": 1.0,
+        "V67": 1.0,
+        "V68": 0.0,
+        "V69": 0.0,
+        "V70": 0.0,
+        "V71": 0.0,
+        "V72": 0.0,
+        "V73": 0.0,
+        "V74": 0.0,
+        "V75": 1.0,
+        "V76": 1.0,
+        "V77": 1.0,
+        "V78": 1.0,
+        "V79": 0.0,
+        "V80": 0.0,
+        "V81": 0.0,
+        "V82": 0.0,
+        "V83": 0.0,
+        "V84": 0.0,
+        "V85": 0.0,
+        "V86": 1.0,
+        "V87": 1.0,
+        "V88": 1.0,
+        "V89": 0.0,
+        "V90": 0.0,
+        "V91": 0.0,
+        "V92": 0.0,
+        "V93": 0.0,
+        "V94": 0.0,
+        "V95": 0.0,
+        "V96": 1.0,
+        "V97": 0.0,
+        "V98": 0.0,
+        "V99": 0.0,
+        "V100": 0.0,
+        "V101": 0.0,
+        "V102": 1.0,
+        "V103": 0.0,
+        "V104": 0.0,
+        "V105": 0.0,
+        "V106": 0.0,
+        "V107": 1.0,
+        "V108": 1.0,
+        "V109": 1.0,
+        "V110": 1.0,
+        "V111": 1.0,
+        "V112": 1.0,
+        "V113": 1.0,
+        "V114": 1.0,
+        "V115": 1.0,
+        "V116": 1.0,
+        "V117": 1.0,
+        "V118": 1.0,
+        "V119": 1.0,
+        "V120": 1.0,
+        "V121": 1.0,
+        "V122": 1.0,
+        "V123": 1.0,
+        "V124": 1.0,
+        "V125": 1.0,
+        "V126": 0.0,
+        "V127": 117.0,
+        "V128": 0.0,
+        "V129": 0.0,
+        "V130": 0.0,
+        "V131": 0.0,
+        "V132": 0.0,
+        "V133": 117.0,
+        "V134": 0.0,
+        "V135": 0.0,
+        "V136": 0.0,
+        "V137": 0.0,
+        "V138": null,
+        "V139": null,
+        "V140": null,
+        "V141": null,
+        "V142": null,
+        "V143": null,
+        "V144": null,
+        "V145": null,
+        "V146": null,
+        "V147": null,
+        "V148": null,
+        "V149": null,
+        "V150": null,
+        "V151": null,
+        "V152": null,
+        "V153": null,
+        "V154": null,
+        "V155": null,
+        "V156": null,
+        "V157": null,
+        "V158": null,
+        "V159": null,
+        "V160": null,
+        "V161": null,
+        "V162": null,
+        "V163": null,
+        "V164": null,
+        "V165": null,
+        "V166": null,
+        "V167": null,
+        "V168": null,
+        "V169": null,
+        "V170": null,
+        "V171": null,
+        "V172": null,
+        "V173": null,
+        "V174": null,
+        "V175": null,
+        "V176": null,
+        "V177": null,
+        "V178": null,
+        "V179": null,
+        "V180": null,
+        "V181": null,
+        "V182": null,
+        "V183": null,
+        "V184": null,
+        "V185": null,
+        "V186": null,
+        "V187": null,
+        "V188": null,
+        "V189": null,
+        "V190": null,
+        "V191": null,
+        "V192": null,
+        "V193": null,
+        "V194": null,
+        "V195": null,
+        "V196": null,
+        "V197": null,
+        "V198": null,
+        "V199": null,
+        "V200": null,
+        "V201": null,
+        "V202": null,
+        "V203": null,
+        "V204": null,
+        "V205": null,
+        "V206": null,
+        "V207": null,
+        "V208": null,
+        "V209": null,
+        "V210": null,
+        "V211": null,
+        "V212": null,
+        "V213": null,
+        "V214": null,
+        "V215": null,
+        "V216": null,
+        "V217": null,
+        "V218": null,
+        "V219": null,
+        "V220": null,
+        "V221": null,
+        "V222": null,
+        "V223": null,
+        "V224": null,
+        "V225": null,
+        "V226": null,
+        "V227": null,
+        "V228": null,
+        "V229": null,
+        "V230": null,
+        "V231": null,
+        "V232": null,
+        "V233": null,
+        "V234": null,
+        "V235": null,
+        "V236": null,
+        "V237": null,
+        "V238": null,
+        "V239": null,
+        "V240": null,
+        "V241": null,
+        "V242": null,
+        "V243": null,
+        "V244": null,
+        "V245": null,
+        "V246": null,
+        "V247": null,
+        "V248": null,
+        "V249": null,
+        "V250": null,
+        "V251": null,
+        "V252": null,
+        "V253": null,
+        "V254": null,
+        "V255": null,
+        "V256": null,
+        "V257": null,
+        "V258": null,
+        "V259": null,
+        "V260": null,
+        "V261": null,
+        "V262": null,
+        "V263": null,
+        "V264": null,
+        "V265": null,
+        "V266": null,
+        "V267": null,
+        "V268": null,
+        "V269": null,
+        "V270": null,
+        "V271": null,
+        "V272": null,
+        "V273": null,
+        "V274": null,
+        "V275": null,
+        "V276": null,
+        "V277": null,
+        "V278": null,
+        "V279": 0.0,
+        "V280": 0.0,
+        "V281": 0.0,
+        "V282": 1.0,
+        "V283": 1.0,
+        "V284": 0.0,
+        "V285": 0.0,
+        "V286": 0.0,
+        "V287": 0.0,
+        "V288": 0.0,
+        "V289": 0.0,
+        "V290": 1.0,
+        "V291": 1.0,
+        "V292": 1.0,
+        "V293": 0.0,
+        "V294": 1.0,
+        "V295": 0.0,
+        "V296": 0.0,
+        "V297": 0.0,
+        "V298": 0.0,
+        "V299": 0.0,
+        "V300": 0.0,
+        "V301": 0.0,
+        "V302": 0.0,
+        "V303": 0.0,
+        "V304": 0.0,
+        "V305": 1.0,
+        "V306": 0.0,
+        "V307": 117.0,
+        "V308": 0.0,
+        "V309": 0.0,
+        "V310": 0.0,
+        "V311": 0.0,
+        "V312": 0.0,
+        "V313": 0.0,
+        "V314": 0.0,
+        "V315": 0.0,
+        "V316": 0.0,
+        "V317": 117.0,
+        "V318": 0.0,
+        "V319": 0.0,
+        "V320": 0.0,
+        "V321": 0.0,
+        "V322": null,
+        "V323": null,
+        "V324": null,
+        "V325": null,
+        "V326": null,
+        "V327": null,
+        "V328": null,
+        "V329": null,
+        "V330": null,
+        "V331": null,
+        "V332": null,
+        "V333": null,
+        "V334": null,
+        "V335": null,
+        "V336": null,
+        "V337": null,
+        "V338": null,
+        "V339": null,
+        "id_01": null,
+        "id_02": null,
+        "id_03": null,
+        "id_04": null,
+        "id_05": null,
+        "id_06": null,
+        "id_07": null,
+        "id_08": null,
+        "id_09": null,
+        "id_10": null,
+        "id_11": null,
+        "id_12": null,
+        "id_13": null,
+        "id_14": null,
+        "id_15": null,
+        "id_16": null,
+        "id_17": null,
+        "id_18": null,
+        "id_19": null,
+        "id_20": null,
+        "id_21": null,
+        "id_22": null,
+        "id_23": null,
+        "id_24": null,
+        "id_25": null,
+        "id_26": null,
+        "id_27": null,
+        "id_28": null,
+        "id_29": null,
+        "id_30": null,
+        "id_31": null,
+        "id_32": null,
+        "id_33": null,
+        "id_34": null,
+        "id_35": null,
+        "id_36": null,
+        "id_37": null,
+        "id_38": null,
+        "DeviceType": null,
+        "DeviceInfo": null
+      },
+      "decision": {
+        "dispute_id": "disp_0",
+        "action": "REVIEW",
+        "p_chargeback": 0.04037558685446009,
+        "p_win": 0.21713842039436626,
+        "delta_ev_inr": 984.5404891521694,
+        "w_completeness": 0.5248800000000001,
+        "missing_required": [
+          "shipping_proof"
+        ],
+        "assumption_notice": "Contest recommendations rest on an inference that is not validated by this dataset: a transaction scored as low chargeback risk that is nevertheless charged back is treated as more likely to be first-party misuse. IEEE-CIS cannot separate first-party misuse from third-party fraud, so this is calibrated to published industry base rates, not measured here.",
+        "bundle": null,
+        "refused_claims": []
+      },
+      "casefile": {
+        "transaction_id": 2987000,
+        "posture": "PASSIVE",
+        "items": {
+          "billing_proof": {
+            "field": "billing_proof",
+            "value": "AVS match on name and postcode (M1/M2/M6 = T/T/T)",
+            "source": "avs_result"
+          },
+          "access_activity_log": {
+            "field": "access_activity_log",
+            "value": "Session from not recorded device (not recorded), session 2FF0F9CF53DF",
+            "source": "device_fingerprint"
+          },
+          "term_and_conditions": {
+            "field": "term_and_conditions",
+            "value": "T&C v3.1 accepted at checkout, ref 422CD80FBC2B",
+            "source": "checkout_log"
+          }
+        }
+      },
+      "bundle": null
+    }
+  },
+  "refusal": {
+    "row": 7,
+    "casefile": {
+      "transaction_id": 2987007,
+      "posture": "ACTIVE",
+      "items": {
+        "billing_proof": {
+          "field": "billing_proof",
+          "value": "AVS mismatch on name or postcode (M1/M2/M6 = -/-/F)",
+          "source": "avs_result"
+        },
+        "access_activity_log": {
+          "field": "access_activity_log",
+          "value": "Session from not recorded device (not recorded), session 6C6AB3853B1B",
+          "source": "device_fingerprint"
+        },
+        "term_and_conditions": {
+          "field": "term_and_conditions",
+          "value": "T&C v3.1 accepted at checkout, ref 56696D785351",
+          "source": "checkout_log"
+        },
+        "shipping_proof": {
+          "field": "shipping_proof",
+          "value": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+          "source": "carrier_tracking"
+        },
+        "customer_communication": {
+          "field": "customer_communication",
+          "value": "Order confirmation emailed to mail.com; no reply received. Thread A041E47BB011",
+          "source": "email_log"
+        }
+      }
+    },
+    "claims": [
+      {
+        "text": "Session from not recorded device (not recorded), session 6C6AB3853B1B",
+        "source_field": "device_fingerprint",
+        "grounded": true
+      },
+      {
+        "text": "AVS mismatch on name or postcode (M1/M2/M6 = -/-/F)",
+        "source_field": "avs_result",
+        "grounded": true
+      },
+      {
+        "text": "Order confirmation emailed to mail.com; no reply received. Thread A041E47BB011",
+        "source_field": "email_log",
+        "grounded": true
+      },
+      {
+        "text": "Delivered, signature captured, AWB A11475423B50 \u2014 shipping address matches billing address",
+        "source_field": "carrier_tracking",
+        "grounded": true
+      },
+      {
+        "text": "T&C v3.1 accepted at checkout, ref 56696D785351",
+        "source_field": "checkout_log",
+        "grounded": true
+      },
+      {
+        "text": "Delivered under AWB ZZZ999",
+        "source_field": "carrier_tracking",
+        "grounded": false
+      }
+    ],
+    "fabricated_claim": "Delivered under AWB ZZZ999",
+    "refused_claims": [
+      "Delivered under AWB ZZZ999"
+    ],
+    "groundedness": 0.8333333333333334,
+    "before": "CONTEST",
+    "after": "REVIEW"
+  },
+  "notes": {
+    "accept_case": "There is no ACCEPT case because no ACCEPT decision was reachable when these rows were selected. ACCEPT needs ACTIVE posture, which takes a large expected exposure, together with an expected value below the negative margin, which takes a small amount. The rows satisfying both are ProductCD C and S, and those products never record the M1/M2/M6 address-match flags. With no flags synthesize_casefile files no billing_proof, billing_proof is required for fraud_card_absent, and the evidence gate returns REVIEW before expected value is consulted. Recheck with `python -m eval.find_demo_rows`.",
+    "points": "A stratified sample of the dataset, not the whole of it. The headline count is 590,540; this buffer holds 100,000."
+  }
+}

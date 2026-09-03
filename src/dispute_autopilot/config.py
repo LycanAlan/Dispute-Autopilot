@@ -23,6 +23,12 @@ CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 # place rather than by raising.
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent / "artifacts"
 
+# Where scripts/export_site_data.py bakes the committed frontend payload and
+# where the API reads the demo rows back out of it. ONE definition for the same
+# reason ARTIFACTS_DIR is one: two writers of the same path drift, and this one
+# is written by a script and read by a server that need never share a CWD.
+SITE_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "data"
+
 ASSUMPTION_NOTICE = (
     "Contest recommendations rest on an inference that is not validated by this "
     "dataset: a transaction scored as low chargeback risk that is nevertheless "

@@ -239,7 +239,14 @@
 
 .model-section__callout {
   position: absolute;
-  transform: translate(-50%, calc(-100% - 0.6rem));
+  /* Up and to the RIGHT of the point, not straight above it.
+   *
+   * A PR curve falls left to right, so the region directly above the operating
+   * point is the steepest part of the curve and the label landed on top of it.
+   * Everything to the upper right of that point is empty by construction: no
+   * PR curve can pass through it, because that would mean higher precision at
+   * higher recall than the model achieves. */
+  transform: translate(0.7rem, calc(-100% - 0.2rem));
   max-width: 10rem;
   padding: 0.3rem 0.5rem;
   background: var(--charcoal-raised);

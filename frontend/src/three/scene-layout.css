@@ -119,14 +119,40 @@
 /* ------------------------------------------------------- per section size */
 
 /* Section 4 hands over to the charts. The cloud has made its point by then,
- * so it shrinks to a reference thumbnail and the two curves get the room. */
+ * so it shrinks to a reference thumbnail and the two curves get the room.
+ *
+ * Stacking the prose, four statistics, the admission and then both charts in
+ * one column pushed the charts off the bottom of a sticky 100svh stage, which
+ * is the same way the refusal section's verdict got clipped. The charts are
+ * the whole reason this section exists after the user asked for them to teach
+ * rather than decorate, so they get their own column and the cloud gives up
+ * most of its width to pay for it. */
 .model-section .section__stage {
-  --scene-col: 0.52fr;
+  --scene-col: 0.34fr;
+  align-items: center;
+}
+
+.model-section .scene-overlay--split {
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  align-items: center;
+  gap: clamp(1.25rem, 2.5vw, 2.5rem);
 }
 
 .model-section .scene-field {
-  aspect-ratio: 1 / 1;
-  max-height: 34svh;
+  aspect-ratio: 3 / 4;
+  max-height: 46svh;
+}
+
+/* The section is dense by necessity, so everything in the text column gives up
+ * a little size. Legibility floor is the admission paragraph, which is the one
+ * piece of prose here that a judge is most likely to actually stop and read. */
+.model-section .model-section__stats {
+  font-size: 0.78rem;
+}
+
+.model-section .model-section__admission {
+  font-size: 0.72rem;
+  line-height: 1.45;
 }
 
 /* Section 5 is the collapse to a single point. It needs to be seen. */

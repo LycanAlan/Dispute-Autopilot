@@ -1,0 +1,229 @@
+/*
+ * pipeline.css
+ *
+ * The section between "measured" and "live". Charcoal ground, like measured
+ * and live either side of it. Selectors are scoped under .pipeline__* and
+ * reuse the shared primitives from core/shell.css and core/tokens.css
+ * (.kicker, .title, .lede, .small, .micro, .num, .is-contest / .is-review /
+ * .is-accept) rather than redefining them.
+ */
+
+/*
+ * Belt and braces: see measured.css for why. tokens.css's .on-charcoal and
+ * shell.css's .section are both single-class selectors, so this re-asserts
+ * the dark ground at higher specificity rather than trusting load order.
+ */
+#pipeline.on-charcoal {
+  background: var(--charcoal);
+  color: var(--bone);
+}
+
+.pipeline__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  transition: opacity var(--dur-fast) linear;
+}
+
+.pipeline__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.pipeline__panel > .lede {
+  max-width: var(--measure);
+}
+
+/* -------------------------------------------------------------- badge */
+
+.pipeline__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.4em 0.75em;
+  border: 1px solid var(--rule-strong);
+  white-space: nowrap;
+}
+
+.pipeline__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--bone-50);
+  background: transparent;
+}
+
+.pipeline__badge--live .pipeline__dot {
+  background: var(--bone);
+  border-color: var(--bone);
+}
+
+.pipeline__badge .micro {
+  color: var(--bone-70);
+}
+
+/* ----------------------------------------------------------- controls */
+
+.pipeline__controls {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--bone);
+}
+
+.pipeline__run {
+  padding: 0.6em 1.2em;
+  background: var(--bone);
+  color: var(--charcoal);
+  border: 1px solid var(--bone);
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity var(--dur-fast) linear;
+}
+
+.pipeline__run:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.pipeline__run:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.pipeline__progress {
+  color: var(--bone-70);
+}
+
+/* ------------------------------------------------------------------ bar */
+
+.pipeline__bar {
+  position: relative;
+  height: 0.5rem;
+  background: var(--rule-dark);
+}
+
+.pipeline__bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--bone);
+  transition: width var(--dur-fast) linear;
+}
+
+/* ----------------------------------------------------------------- note */
+
+.pipeline__note {
+  padding: var(--space-4);
+  border-left: 2px solid var(--rule-dark-strong);
+  color: var(--bone-70);
+}
+
+.pipeline__note code {
+  color: var(--bone);
+}
+
+.pipeline__note.is-empty {
+  display: none;
+}
+
+/* ----------------------------------------------------------------- rows */
+
+.pipeline__rows {
+  max-height: 22.5rem;
+  overflow-y: auto;
+  border-top: 1px solid var(--rule-dark);
+}
+
+.pipeline__row {
+  display: grid;
+  grid-template-columns: 6rem 5.5rem 5rem minmax(0, 1fr) 1.4rem 5.5rem;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--rule-dark);
+  font-size: var(--type-small);
+}
+
+.pipeline__cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pipeline__cell--posture {
+  color: var(--bone-50);
+}
+
+.pipeline__cell--why {
+  color: var(--bone-70);
+}
+
+.pipeline__cell--arrow {
+  color: var(--bone-50);
+  text-align: center;
+}
+
+.pipeline__cell--action {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+
+/* Green and clay both read too dark on charcoal at this weight; amber
+   already clears it. Same lift live.css and gate2.css apply to their own
+   decision-coloured text. */
+.pipeline__cell--action.is-contest {
+  color: color-mix(in srgb, var(--contest) 70%, var(--bone));
+}
+
+.pipeline__cell--action.is-accept {
+  color: color-mix(in srgb, var(--accept) 70%, var(--bone));
+}
+
+/* ------------------------------------------------------------- summary */
+
+.pipeline__summary:empty {
+  display: none;
+}
+
+.pipeline__counts {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule-dark);
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  letter-spacing: 0.04em;
+}
+
+.pipeline__count.is-contest {
+  color: color-mix(in srgb, var(--contest) 70%, var(--bone));
+}
+
+.pipeline__count.is-accept {
+  color: color-mix(in srgb, var(--accept) 70%, var(--bone));
+}
+
+.pipeline__exposure {
+  margin-top: var(--space-2);
+  color: var(--bone-70);
+}
+
+@media (max-width: 46rem) {
+  .pipeline__row {
+    grid-template-columns: 5rem 4.5rem 4rem minmax(0, 1fr) 1.2rem 4.5rem;
+    gap: var(--space-2);
+    font-size: var(--type-micro);
+  }
+}

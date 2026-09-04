@@ -1,15 +1,23 @@
 """FastAPI surface. One meaningful endpoint; this is a demo, not a platform."""
 import json
+import time
 from functools import lru_cache
+from typing import Iterator
 
+import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
-from dispute_autopilot.casefile.store import VaultStore
+from dispute_autopilot.assembler.assemble import assemble_deterministic
+from dispute_autopilot.casefile.store import VaultStore, choose_posture
+from dispute_autopilot.casefile.synthesize import synthesize_casefile
 from dispute_autopilot.config import SITE_DATA_DIR
-from dispute_autopilot.contracts import Decision, Dispute
+from dispute_autopilot.contracts import Action, Decision, Dispute
+from dispute_autopilot.economics.cost_model import to_inr
+from dispute_autopilot.ingest.load import load_raw
 from dispute_autopilot.model.predict import Scorer
 from dispute_autopilot.triage import triage
 
@@ -41,6 +49,30 @@ class TriageRequest(BaseModel):
 @lru_cache(maxsize=1)
 def _deps():
     return Scorer.load(), VaultStore()
+
+
+# Matches eval/find_demo_rows.py's default and export_site_data.py's
+# DEMO_SAMPLE_N: the earliest 5,000 rows by transaction time, out of 590,540.
+# load_raw() always reads BOTH full CSVs (~700 MB) before this head-sample
+# happens -- sample_n does not make the read itself cheaper -- so the point
+# of sampling here is a smaller resident frame, not a faster load.
+_POOL_SAMPLE_N = 5_000
+
+# The only reason code defined in config/costs.yaml, and the one every other
+# real-pipeline call site (find_demo_rows.py, export_site_data.py, live.ts's
+# demo cases) uses.
+_REASON_CODE = "fraud_card_absent"
+
+
+@lru_cache(maxsize=1)
+def _rows() -> pd.DataFrame:
+    """The same real rows eval/find_demo_rows.py samples. Loaded once per process.
+
+    The full CSV read takes several seconds -- see the module note on
+    demo_cases below -- so the first POST /run in a server's life pays that
+    cost before its first record streams. Every call after is instant.
+    """
+    return load_raw(sample_n=_POOL_SAMPLE_N)
 
 
 @lru_cache(maxsize=1)
@@ -101,3 +133,91 @@ def triage_dispute(dispute_id: str, req: TriageRequest) -> Decision:
         return triage(dispute, pd.DataFrame([req.transaction]), scorer, vault)
     except KeyError as exc:
         raise HTTPException(status_code=400, detail=f"missing field: {exc}") from exc
+
+
+class RunRequest(BaseModel):
+    n: int = Field(default=50, ge=1, le=200)
+    seed: int = 0
+
+
+def _triage_batch(n: int, seed: int) -> Iterator[bytes]:
+    """One real row triaged per line, as it finishes. The last line is a summary.
+
+    Every field in a record comes straight off the real Decision this row's
+    real triage() call returned -- see decision.py -- nothing here computes or
+    invents a number. `assemble_deterministic` is passed explicitly so a
+    CONTEST row can never reach the provider seam that resolves an API key:
+    see assemble.py's `assemble()`, which only calls a provider when its
+    `assembler` argument is left as None. This call site never leaves it None.
+    """
+    scorer, vault = _deps()
+    pool = _rows()
+    picked = np.random.default_rng(seed).choice(len(pool), size=n, replace=False)
+    indices = sorted(int(i) for i in picked)
+
+    counts = {"CONTEST": 0, "ACCEPT": 0, "REVIEW": 0}
+    exposure_decided_inr = 0.0
+    started = time.perf_counter()   # after the pool is loaded, before any row is worked
+
+    for i in indices:
+        row = pool.iloc[[i]]
+        row_started = time.perf_counter()
+
+        amount = float(to_inr(row["TransactionAmt"].iloc[0]))
+        score = scorer.score_one(row)
+        posture = choose_posture(score.p_chargeback, amount)
+        casefile = synthesize_casefile(row.iloc[0], posture, seed=i)
+        vault.put(casefile)
+
+        dispute = Dispute(
+            dispute_id=f"run_{i}",
+            transaction_id=int(row["TransactionID"].iloc[0]),
+            amount_inr=amount,
+            reason_code=_REASON_CODE,
+        )
+        decision = triage(dispute, row, scorer, vault, assemble_deterministic)
+        elapsed_ms = (time.perf_counter() - row_started) * 1000.0
+
+        counts[decision.action.value] += 1
+        # REVIEW is the system declining to decide -- the evidence gate or the
+        # margin sent it to a human -- so it never counts toward exposure a
+        # decision actually disposed of.
+        if decision.action is not Action.REVIEW:
+            exposure_decided_inr += amount
+
+        record = {
+            "transaction_id": dispute.transaction_id,
+            "amount_inr": amount,
+            "p_chargeback": decision.p_chargeback,
+            "posture": posture.value,
+            "w_completeness": decision.w_completeness,
+            "missing_required": decision.missing_required,
+            "delta_ev_inr": decision.delta_ev_inr,
+            "action": decision.action.value,
+            "elapsed_ms": elapsed_ms,
+        }
+        yield (json.dumps(record) + "\n").encode()
+
+    summary = {
+        "summary": {
+            "n": len(indices),
+            "counts": counts,
+            "exposure_decided_inr": exposure_decided_inr,
+            "total_wall_ms": (time.perf_counter() - started) * 1000.0,
+        }
+    }
+    yield (json.dumps(summary) + "\n").encode()
+
+
+@app.post("/run")
+def run(req: RunRequest) -> StreamingResponse:
+    """Triage `n` real rows, live, and stream one NDJSON record per row.
+
+    A plain (non-async) generator: Starlette runs it in a thread pool and
+    sends each line to the client the moment it is produced, rather than
+    buffering the whole run behind one response. That is what lets the
+    frontend render a row every ~178 ms instead of waiting on the total.
+    """
+    return StreamingResponse(
+        _triage_batch(req.n, req.seed), media_type="application/x-ndjson"
+    )

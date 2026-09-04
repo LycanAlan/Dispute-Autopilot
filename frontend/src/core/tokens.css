@@ -48,10 +48,26 @@
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
     Consolas, "DejaVu Sans Mono", monospace;
 
-  --type-display: clamp(2.75rem, 1.7rem + 4.4vw, 5.5rem);
-  --type-title: clamp(2rem, 1.4rem + 2.6vw, 3.5rem);
-  --type-head: clamp(1.375rem, 1.15rem + 1vw, 2rem);
-  --type-lede: clamp(1.125rem, 1.02rem + 0.5vw, 1.375rem);
+  /*
+   * The display scale reads viewport HEIGHT as well as width.
+   *
+   * Every section on this page lives in a sticky stage, and a sticky stage
+   * pins at top: 0, so content past the bottom of the viewport is not below
+   * the fold, it is unreachable for the whole runway. Type that scales on
+   * width alone gets this exactly wrong on the screen where it matters most:
+   * a 1366 by 768 laptop is wide enough to ask for the largest heading on the
+   * scale and far too short to afford it, and the bottom of the section is
+   * what pays. Mixing a vh term in keeps the big type on a tall screen and
+   * gives the height back on a short one.
+   *
+   * eval/check_layout.py measures the real overflow at three viewport sizes,
+   * so a heading that grows past its budget fails a check rather than
+   * quietly eating the last paragraph of a section.
+   */
+  --type-display: clamp(2.5rem, 1.5rem + 3.4vw + 1vh, 5.5rem);
+  --type-title: clamp(1.75rem, 1.15rem + 1.9vw + 0.9vh, 3.5rem);
+  --type-head: clamp(1.25rem, 1rem + 0.75vw + 0.35vh, 2rem);
+  --type-lede: clamp(1.0625rem, 0.95rem + 0.35vw + 0.2vh, 1.375rem);
   --type-body: 1.0625rem;
   --type-small: 0.875rem;
   --type-micro: 0.75rem;

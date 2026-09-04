@@ -21,10 +21,13 @@
   color: var(--bone);
 }
 
+/* Height budgeted, not fixed. A sticky stage pins at top: 0, so
+   anything past the viewport bottom is unreachable rather than merely
+   below the fold. See eval/check_layout.py. */
 .measured__inner {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: clamp(1rem, 3.5vh, 4rem);
 }
 
 .measured__head .title {
@@ -38,7 +41,7 @@
 }
 
 .measured__family {
-  padding: var(--space-6) var(--space-6) var(--space-5) 0;
+  padding: clamp(0.85rem, 2.6vh, 2rem) var(--space-6) clamp(0.7rem, 2vh, 1.5rem) 0;
   border-left: 1px solid var(--rule);
   padding-left: var(--space-6);
   display: flex;

@@ -81,11 +81,27 @@ html.lenis body {
   overflow: hidden;
 }
 
+/*
+ * The vertical padding is vh-aware, the horizontal padding is not.
+ *
+ * A stage is position: sticky with top: 0, so when its content is taller than
+ * the viewport the overflow is not scrolled, it is simply never reachable:
+ * the stage pins at the top and its bottom stays below the fold for the whole
+ * runway. That is what "cut off at the bottom" was, and fixed vertical
+ * padding of masthead + 3rem above and 4rem below spends 112px of a 768px
+ * screen on air before a section has drawn anything.
+ *
+ * The clamps keep the generous spacing on a tall screen and give the room
+ * back on a short one. eval/check_layout.py measures the real numbers at
+ * three viewport sizes so this cannot quietly regress.
+ */
 .section__inner {
   width: 100%;
   max-width: var(--page-max);
   margin-inline: auto;
-  padding: calc(var(--masthead-h) + var(--space-7)) var(--gutter) var(--space-8);
+  padding-inline: var(--gutter);
+  padding-block: calc(var(--masthead-h) + clamp(1rem, 3.5vh, 3rem))
+                 clamp(1.25rem, 4vh, 4rem);
 }
 
 /* A section that is not a runway still wants its content vertically centred. */

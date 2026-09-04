@@ -22,13 +22,13 @@
 }
 
 .gate1__text .title {
-  margin-bottom: var(--space-5);
+  margin-bottom: clamp(0.8rem, 2.6vh, 2rem);
 }
 
 /* A larger, quieter statement of the reversal. Ink, not a decision colour:
    this section is not yet the verdict, it is the mechanism behind it. */
 .gate1__quote {
-  margin: var(--space-6) 0 0;
+  margin: clamp(0.9rem, 3vh, 2rem) 0 0;
   padding-left: var(--space-5);
   border-left: 2px solid var(--rule-strong);
   font-family: var(--font-display);
@@ -44,10 +44,14 @@
   padding-top: var(--space-4);
 }
 
+/* Height budgeted, not fixed. A sticky stage pins at top: 0, so
+   anything past the viewport bottom is unreachable rather than merely
+   below the fold. See eval/check_layout.py. */
 .gate1__chart {
   width: 100%;
   height: auto;
-  margin-top: var(--space-5);
+  max-height: clamp(7rem, 21vh, 17rem);
+  margin-top: clamp(0.6rem, 2.2vh, 1.75rem);
   overflow: visible;
 }
 
@@ -86,8 +90,8 @@
 }
 
 .gate1__figure {
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
+  margin-top: clamp(0.75rem, 2.5vh, 2rem);
+  padding-top: clamp(0.6rem, 1.8vh, 1.5rem);
   border-top: 1px solid var(--rule);
   display: flex;
   flex-direction: column;
@@ -107,6 +111,7 @@
 .gate1__signals .readout {
   grid-template-columns: 1fr;
   row-gap: var(--space-1);
+  padding-block: clamp(0.3rem, 1.1vh, 0.75rem);
 }
 
 .gate1__signals .readout__value {

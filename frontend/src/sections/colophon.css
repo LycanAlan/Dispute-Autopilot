@@ -29,9 +29,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  gap: clamp(0.15rem, 0.9vh, 0.85rem);
   width: 100%;
-  max-width: 46rem;
+  max-width: 48rem;
   text-align: center;
 }
 
@@ -46,12 +46,18 @@
 
 /* ------------------------------------------------------------- notice */
 
+/*
+ * Sized against viewport HEIGHT, not width, which is unusual and deliberate.
+ * Eleven lines of a closing statement have to fit inside a sticky stage, and
+ * anything past the fold there is unreachable rather than merely below. The
+ * type stays generous on a tall screen and gives the room back on a short one.
+ */
 .colophon__notice-line {
   font-family: var(--font-display);
-  font-size: var(--type-lede);
-  line-height: 1.5;
+  font-size: clamp(0.9rem, 0.8rem + 0.55vh, 1.3rem);
+  line-height: 1.38;
   letter-spacing: -0.006em;
-  max-width: 42ch;
+  max-width: 52ch;
 }
 
 /* A short centred rule rather than a box: the printer's dinkus between
@@ -60,23 +66,29 @@
   width: 2.5rem;
   height: 1px;
   background: var(--rule);
-  margin-block: var(--space-5);
+  margin-block: clamp(0.45rem, 1.7vh, 2rem);
 }
 
 /* ------------------------------------------------------------ headline */
 
-.colophon__headline {
+/* The .title scale tops out at 3.5rem, which on a 768px screen spends a
+ * tenth of the viewport on four words. Held to the smaller head scale.
+ *
+ * Id selector for the same reason as refusal.css documents: this h2 carries
+ * .title as well, the two classes tie, and tokens.css wins the tie. */
+#colophon .colophon__headline {
   margin: 0;
   max-width: 30ch;
+  font-size: var(--type-head);
 }
 
 /* --------------------------------------------------------------- body */
 
 .colophon__body-line {
-  font-size: var(--type-body);
-  line-height: var(--leading-body);
+  font-size: clamp(0.8rem, 0.75rem + 0.35vh, 0.95rem);
+  line-height: 1.5;
   color: var(--ink-70);
-  max-width: 48ch;
+  max-width: 62ch;
 }
 
 /* --------------------------------------------------------- signature */
@@ -85,8 +97,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  margin-top: var(--space-2);
+  gap: 0.05rem;
+  margin-top: clamp(0.2rem, 1vh, 0.75rem);
+}
+
+.colophon__name {
+  font-size: clamp(1rem, 0.9rem + 0.4vh, 1.3rem);
 }
 
 .colophon__name {
@@ -96,7 +112,7 @@
 }
 
 .colophon__signature p {
-  line-height: 1.7;
+  line-height: 1.45;
 }
 
 .colophon__signature a,

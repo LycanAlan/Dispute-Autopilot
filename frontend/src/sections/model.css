@@ -15,8 +15,6 @@
 }
 
 .model-section .scene-overlay--split {
-  align-self: stretch;
-  min-height: 100svh;
   align-content: center;
 }
 
@@ -68,15 +66,116 @@
   gap: var(--space-2);
 }
 
+/* Chart name on the left, calibrated/uncalibrated key on the right. Every
+ * chart repeats the key rather than defining it once, so a reader who has
+ * scrolled straight to the calibration curve is not sent hunting upward for
+ * what the ghost line means. */
+.model-section__chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.model-section__legend {
+  display: flex;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  color: var(--bone-70);
+}
+
+.model-section__legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.model-section__swatch {
+  display: inline-block;
+  width: 1rem;
+  height: 2px;
+}
+
+.model-section__swatch--solid {
+  background: var(--bone);
+}
+
+.model-section__swatch--ghost {
+  background: var(--bone-50);
+}
+
+/* The axis title sits as running text above (y) and below (x) the plot,
+ * rather than rotated against the y edge, so it stays legible at the panel
+ * widths this section actually renders at. */
+.model-section__axistitle {
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  letter-spacing: 0.02em;
+  color: var(--bone-50);
+}
+
+.model-section__axistitle--x {
+  text-align: center;
+}
+
+/* Grid: a narrow tick column on the left, the plot in the wide cell beside
+ * it, a matching tick row underneath. This is what lets the y ticks line up
+ * with the curve without measuring anything by hand. */
+.model-section__plot {
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+}
+
+.model-section__ticks {
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  color: var(--bone-50);
+}
+
+.model-section__ticks--y {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-block: 0.15rem;
+}
+
+.model-section__ticks--x {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  justify-content: space-between;
+}
+
+.model-section__svgwrap {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  height: 9.5rem;
+}
+
 .model-section__svg {
+  display: block;
   width: 100%;
-  height: 8rem;
+  height: 100%;
   overflow: visible;
 }
 
 .model-section__axis {
   stroke: var(--rule-dark-strong);
   stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.model-section__gridline {
+  stroke: var(--rule-dark);
+  stroke-width: 0.4;
   vector-effect: non-scaling-stroke;
 }
 
@@ -87,25 +186,105 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* The rate you would get by guessing (PR chart) or the diagonal itself
+ * (calibration chart, via .model-section__reference above) -- something the
+ * curve has to visibly beat rather than a bare plot with no reference. */
+.model-section__baseline {
+  stroke: var(--bone-30);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* stroke-dasharray and stroke-dashoffset are not set here. model.ts measures
+ * the real path length with getTotalLength() at mount and drives both from
+ * progress in the path's own units -- see the comment there for why a
+ * pathLength="1" shortcut is not used.
+ *
+ * No vector-effect: non-scaling-stroke, deliberately, unlike the axis and
+ * gridlines below. This viewBox is stretched non-uniformly to the panel's
+ * aspect ratio (preserveAspectRatio="none"), and Chromium's non-scaling-stroke
+ * miter computation on a many-vertex polyline under that anisotropic a
+ * transform renders with real gaps in it -- reproduced on the calibration
+ * curve, whose points are unevenly spaced and include one long, steep
+ * segment. Axis, grid and reference lines stay non-scaling: each is a single
+ * two-point straight segment, so they cannot hit the same failure, and they
+ * are what should stay hairline-thin regardless of panel size. */
 .model-section__path {
   fill: none;
   stroke: var(--bone);
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
 }
 
-.model-section__axislabels {
-  display: flex;
-  justify-content: space-between;
+/* The uncalibrated curve, drawn first so the calibrated one sits on top of
+ * it. Thin and half-transparent rather than dashed, so it reads as "the same
+ * measurement, before" rather than as a second thing competing for the eye.
+ * Not part of the getTotalLength() reveal: it is context for the animated
+ * curve, not the thing being revealed, so it is always fully drawn. */
+.model-section__path--ghost {
+  stroke: var(--bone-50);
+  stroke-width: 1;
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+}
+
+.model-section__point {
+  fill: var(--bone);
+  stroke: var(--charcoal);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.model-section__callout {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 0.6rem));
+  max-width: 10rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--charcoal-raised);
+  border: 1px solid var(--rule-dark-strong);
   font-family: var(--font-mono);
   font-size: var(--type-micro);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--bone);
+  text-align: center;
+  pointer-events: none;
+}
+
+.model-section__baselinelabel {
+  position: absolute;
+  /* Left, not right. A PR curve meets its own baseline exactly at recall = 1
+   * (precision there is the base rate, by definition), so the right edge is
+   * where curve and baseline are closest -- a label anchored there sits in
+   * the curve's own path. The left edge is where the curve is highest (precision
+   * near 1) and the gap to the baseline is largest. */
+  left: 0;
+  /* The baseline sits within a few percent of the bottom edge (the base
+   * chargeback rate is small), so translateY(-100%) alone lands the label's
+   * text flush against the dashed line -- descenders were touching it. A
+   * fixed rem gap on top of the own-height shift keeps clear air above it. */
+  transform: translateY(calc(-100% - 0.4rem));
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
   color: var(--bone-50);
+  text-align: left;
+  pointer-events: none;
+}
+
+.model-section__diagonallabel {
+  position: absolute;
+  top: 0.3rem;
+  right: 0;
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  color: var(--bone-50);
+  pointer-events: none;
+}
+
+.model-section__chartcaption {
+  font-size: var(--type-small);
+  color: var(--bone-70);
 }
 
 /* The admission about calibration lowering PR-AUC. Set as prose rather than as

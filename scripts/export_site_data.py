@@ -30,8 +30,10 @@ from dispute_autopilot.casefile.synthesize import synthesize_casefile
 from dispute_autopilot.config import SITE_DATA_DIR
 from dispute_autopilot.contracts import Claim, Dispute, EvidenceBundle
 from dispute_autopilot.economics.cost_model import to_inr
+from dispute_autopilot.features.builder import build_features
 from dispute_autopilot.ingest.load import load_raw
 from dispute_autopilot.ingest.split import CALIB_FRAC, TRAIN_FRAC, temporal_split
+from dispute_autopilot.model.calibrate import apply_calibrator
 from dispute_autopilot.model.predict import Scorer
 from dispute_autopilot.triage import triage
 from eval import REPORTS
@@ -276,7 +278,16 @@ def main() -> dict:
     # category sets are fixed at training time, so a slice of this array is
     # identical to scoring that slice on its own -- and one pass is cheaper than
     # three. The PR-AUC check below is what proves the slice is the right one.
-    p_all = scorer.score_batch(df)
+    #
+    # This inlines Scorer.score_batch rather than calling it, because the site
+    # now draws the UNCALIBRATED curves too (section 4 shows what calibration
+    # actually buys), and score_batch throws the pre-calibration score away.
+    # raw_all and p_all are computed from the identical features array, so a
+    # slice of either is identical to scoring that slice on its own.
+    features_all = build_features(df, categories=scorer.categories)
+    raw_all = scorer.booster.predict(features_all)
+    p_all = apply_calibrator(scorer.calibrator, raw_all)
+    del features_all
 
     idx, sampling = _stratified_sample(labels)
     points = np.column_stack(
@@ -315,6 +326,7 @@ def main() -> dict:
 
     y_test = test["isFraud"].to_numpy()
     p_test = p_all[i_calib:]
+    raw_test = raw_all[i_calib:]
     del test, df
 
     from sklearn.calibration import calibration_curve
@@ -330,9 +342,27 @@ def main() -> dict:
             f"The artifacts and the report disagree; re-run `python -m eval.run_eval`."
         )
 
+    # Same check, uncalibrated. family_a.pr_auc_uncalibrated is what the model
+    # section quotes as the "before calibration" figure, so the curve behind it
+    # has to be measured against that same number, not just plotted from raw.
+    replayed_pr_auc_uncalibrated = float(average_precision_score(y_test, raw_test))
+    if abs(replayed_pr_auc_uncalibrated - metrics["family_a"]["pr_auc_uncalibrated"]) > 1e-9:
+        raise SystemExit(
+            f"uncalibrated PR-AUC recomputed here is {replayed_pr_auc_uncalibrated} but "
+            f"eval/reports/metrics.json says {metrics['family_a']['pr_auc_uncalibrated']}. "
+            f"The artifacts and the report disagree; re-run `python -m eval.run_eval`."
+        )
+
     precision, recall, _ = precision_recall_curve(y_test, p_test)
     frac_pos, mean_pred = calibration_curve(y_test, p_test, n_bins=10,
                                             strategy="quantile")
+
+    # The ghost curves behind the calibrated ones. Same slice, same metric
+    # functions, only the scores are pre-calibration -- so the site can show
+    # what isotonic regression actually did rather than just asserting it.
+    precision_u, recall_u, _ = precision_recall_curve(y_test, raw_test)
+    frac_pos_u, mean_pred_u = calibration_curve(y_test, raw_test, n_bins=10,
+                                                strategy="quantile")
 
     demo = load_raw(sample_n=DEMO_SAMPLE_N)
     vault = VaultStore()
@@ -354,6 +384,8 @@ def main() -> dict:
         "curves": {
             "pr": _downsample(recall, precision),
             "calibration": _downsample(mean_pred, frac_pos),
+            "pr_uncalibrated": _downsample(recall_u, precision_u),
+            "calibration_uncalibrated": _downsample(mean_pred_u, frac_pos_u),
         },
         "cases": cases,
         "refusal": refusal,
@@ -388,7 +420,9 @@ def main() -> dict:
     print(f"keys            {sorted(snapshot)}")
     print(f"split           {split['train_end_x']:.4f} / {split['calib_end_x']:.4f}")
     print(f"curves          pr={len(snapshot['curves']['pr'])} "
-          f"calibration={len(snapshot['curves']['calibration'])}")
+          f"calibration={len(snapshot['curves']['calibration'])} "
+          f"pr_uncalibrated={len(snapshot['curves']['pr_uncalibrated'])} "
+          f"calibration_uncalibrated={len(snapshot['curves']['calibration_uncalibrated'])}")
     print(f"cases           " + ", ".join(
         f"{k}={v['decision']['action'] if v else 'UNAVAILABLE'}"
         for k, v in cases.items()))

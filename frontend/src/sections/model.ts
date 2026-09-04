@@ -25,7 +25,25 @@ import './model.css';
 export const MODEL_CAM_END: Vec3 = [0.4, 7.8, 6.4];
 export const MODEL_LOOK_END: Vec3 = [0, 0.4, 0];
 
-function pathFrom(points: ReadonlyArray<readonly [number, number]>, flipY: boolean): string {
+type CurvePoints = ReadonlyArray<readonly [number, number]>;
+
+/**
+ * data.curves as exported today, widened with the two uncalibrated series.
+ * core/data.ts types Curves as { pr, calibration } with no index signature
+ * (unlike FamilyA/B/C, which do carry one) -- see the comment there. This
+ * section does not own that file, so the extra keys the exporter now writes
+ * are read through this local, still-structural type instead of an edit
+ * there. Every field here is really on the object at runtime; nothing here
+ * fabricates a value, it only tells the compiler about one that exists.
+ */
+interface ModelCurves {
+  pr: CurvePoints;
+  calibration: CurvePoints;
+  pr_uncalibrated: CurvePoints;
+  calibration_uncalibrated: CurvePoints;
+}
+
+function pathFrom(points: CurvePoints, flipY: boolean): string {
   if (points.length === 0) return '';
   return points
     .map(([a, b], i) => {
@@ -50,12 +68,32 @@ class ModelSection implements Section {
     const targetA = (data.split.train_end_x - 0.5) * WORLD.width;
     const targetB = (data.split.calib_end_x - 0.5) * WORLD.width;
 
-    const prPath = pathFrom(data.curves.pr, true);
-    const calPath = pathFrom(data.curves.calibration, true);
+    const curves = data.curves as unknown as ModelCurves;
+    const prPath = pathFrom(curves.pr, true);
+    const calPath = pathFrom(curves.calibration, true);
+    const prGhostPath = pathFrom(curves.pr_uncalibrated, true);
+    const calGhostPath = pathFrom(curves.calibration_uncalibrated, true);
+
+    // The operating point: family_a's own F1-maximising threshold, plotted on
+    // the same recall/precision axes as the curve it sits on. flipY matches
+    // pathFrom above -- higher precision draws higher on screen, so the SVG y
+    // coordinate is (1 - precision) * 100.
+    const opX = (data.family_a.recall_at_threshold * 100).toFixed(2);
+    const opY = ((1 - data.family_a.precision_at_threshold) * 100).toFixed(2);
+    const opCallout =
+      'Operating point: recall ' +
+      fmtPct(data.family_a.recall_at_threshold) +
+      ', precision ' +
+      fmtPct(data.family_a.precision_at_threshold);
+
+    // The baseline: the precision you would get by flagging every
+    // transaction, i.e. the base chargeback rate. Same axes, same flip.
+    const baseY = ((1 - data.family_a.positive_rate) * 100).toFixed(2);
+    const baseLabel = fmtPct(data.family_a.positive_rate) + ' precision by guessing';
 
     root.innerHTML = `
       <div class="section__stage">
-        <div class="scene-field" data-field></div>
+        <div class="scene-field" data-field data-scene-caption="camera looking down the risk axis"></div>
         <div class="scene-overlay scene-overlay--split">
           <div class="model-section__lockup">
             <div class="ruled-kicker"><span class="kicker">The model</span></div>
@@ -85,29 +123,70 @@ class ModelSection implements Section {
 
           <div class="scene-panel model-section__panel">
             <div class="model-section__chart">
-              <span class="kicker">PR curve</span>
-              <svg class="model-section__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                <line x1="0" y1="100" x2="100" y2="100" class="model-section__axis" />
-                <line x1="0" y1="0" x2="0" y2="100" class="model-section__axis" />
-                <path d="${prPath}" class="model-section__path" data-pr-path pathLength="1" />
-              </svg>
-              <div class="model-section__axislabels">
-                <span>Recall</span>
-                <span>Precision</span>
+              <div class="model-section__chart-head">
+                <span class="kicker">PR curve</span>
+                <ul class="model-section__legend">
+                  <li><span class="model-section__swatch model-section__swatch--solid"></span>Calibrated</li>
+                  <li><span class="model-section__swatch model-section__swatch--ghost"></span>Uncalibrated</li>
+                </ul>
               </div>
+              <p class="model-section__axistitle model-section__axistitle--y">Precision, share of flags that were right</p>
+              <div class="model-section__plot">
+                <div class="model-section__ticks model-section__ticks--y" aria-hidden="true">
+                  <span>1</span><span>0.5</span><span>0</span>
+                </div>
+                <div class="model-section__svgwrap">
+                  <svg class="model-section__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <line x1="0" y1="50" x2="100" y2="50" class="model-section__gridline" />
+                    <line x1="50" y1="0" x2="50" y2="100" class="model-section__gridline" />
+                    <line x1="0" y1="100" x2="100" y2="100" class="model-section__axis" />
+                    <line x1="0" y1="0" x2="0" y2="100" class="model-section__axis" />
+                    <line x1="0" y1="${baseY}" x2="100" y2="${baseY}" class="model-section__baseline" data-pr-baseline />
+                    <path d="${prGhostPath}" class="model-section__path model-section__path--ghost" data-pr-ghost-path />
+                    <path d="${prPath}" class="model-section__path" data-pr-path />
+                    <circle cx="${opX}" cy="${opY}" r="1.6" class="model-section__point" data-pr-point />
+                  </svg>
+                  <span class="model-section__baselinelabel" style="top:${baseY}%">${baseLabel}</span>
+                  <div class="model-section__callout" style="left:${opX}%; top:${opY}%">${opCallout}</div>
+                </div>
+                <div class="model-section__ticks model-section__ticks--x" aria-hidden="true">
+                  <span>0</span><span>0.5</span><span>1</span>
+                </div>
+              </div>
+              <p class="model-section__axistitle model-section__axistitle--x">Recall, share of chargebacks caught</p>
+              <p class="model-section__chartcaption">Good looks like up and to the right.</p>
             </div>
             <div class="model-section__chart">
-              <span class="kicker">Calibration curve</span>
-              <svg class="model-section__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                <line x1="0" y1="100" x2="100" y2="100" class="model-section__axis" />
-                <line x1="0" y1="0" x2="0" y2="100" class="model-section__axis" />
-                <line x1="0" y1="100" x2="100" y2="0" class="model-section__reference" />
-                <path d="${calPath}" class="model-section__path" data-cal-path pathLength="1" />
-              </svg>
-              <div class="model-section__axislabels">
-                <span>Predicted</span>
-                <span>Observed</span>
+              <div class="model-section__chart-head">
+                <span class="kicker">Calibration curve</span>
+                <ul class="model-section__legend">
+                  <li><span class="model-section__swatch model-section__swatch--solid"></span>Calibrated</li>
+                  <li><span class="model-section__swatch model-section__swatch--ghost"></span>Uncalibrated</li>
+                </ul>
               </div>
+              <p class="model-section__axistitle model-section__axistitle--y">Observed frequency</p>
+              <div class="model-section__plot">
+                <div class="model-section__ticks model-section__ticks--y" aria-hidden="true">
+                  <span>1</span><span>0.5</span><span>0</span>
+                </div>
+                <div class="model-section__svgwrap">
+                  <svg class="model-section__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <line x1="0" y1="50" x2="100" y2="50" class="model-section__gridline" />
+                    <line x1="50" y1="0" x2="50" y2="100" class="model-section__gridline" />
+                    <line x1="0" y1="100" x2="100" y2="100" class="model-section__axis" />
+                    <line x1="0" y1="0" x2="0" y2="100" class="model-section__axis" />
+                    <line x1="0" y1="100" x2="100" y2="0" class="model-section__reference" />
+                    <path d="${calGhostPath}" class="model-section__path model-section__path--ghost" data-cal-ghost-path />
+                    <path d="${calPath}" class="model-section__path" data-cal-path />
+                  </svg>
+                  <span class="model-section__diagonallabel">perfect calibration</span>
+                </div>
+                <div class="model-section__ticks model-section__ticks--x" aria-hidden="true">
+                  <span>0</span><span>0.5</span><span>1</span>
+                </div>
+              </div>
+              <p class="model-section__axistitle model-section__axistitle--x">Predicted probability</p>
+              <p class="model-section__chartcaption">Closer to the diagonal means the number means what it says.</p>
             </div>
           </div>
         </div>
@@ -144,6 +223,21 @@ class ModelSection implements Section {
 
     const prPathEl = root.querySelector<SVGPathElement>('[data-pr-path]');
     const calPathEl = root.querySelector<SVGPathElement>('[data-cal-path]');
+
+    // Real path length in user-space units, not the pathLength="1" trick this
+    // used to lean on. That normalises stroke-dasharray/stroke-dashoffset
+    // against an author-declared length wildly different from the geometric
+    // one -- 1 declared against ~37 actual for the calibration curve, whose 9
+    // points sit at very uneven spacing -- and Chromium's per-segment dash
+    // interpolation visibly loses the plot under that big a rescale: the
+    // "revealed" line renders with real gaps in it, at progress 1, on a curve
+    // that has nothing left to reveal. getTotalLength() and dashing in the
+    // path's own units sidesteps the rescale entirely, so what the browser
+    // draws matches what it measures.
+    const prLen = prPathEl?.getTotalLength() ?? 0;
+    const calLen = calPathEl?.getTotalLength() ?? 0;
+    if (prPathEl) prPathEl.style.strokeDasharray = String(prLen);
+    if (calPathEl) calPathEl.style.strokeDasharray = String(calLen);
 
     const field = root.querySelector<HTMLElement>('[data-field]');
     if (!field) return;
@@ -188,13 +282,16 @@ class ModelSection implements Section {
     await this.presence.mount(field);
 
     // Curves are SVG, so they draw the same way whether the scene behind
-    // them is WebGL or the flat canvas: a pathLength="1" path needs only
-    // its dash offset set from progress, no measurement, no WebGL at all.
+    // them is WebGL or the flat canvas: the path needs only its dash offset
+    // set from progress, no WebGL at all. Pure in progress: prLen/calLen are
+    // fixed at mount, so the same progress always yields the same offset, and
+    // windowed(1, ..., 1) is exactly 1, so dashoffset is exactly 0 -- fully
+    // drawn, no residual gap -- at progress 1.
     this.setPathReveal = (progress: number): void => {
       const prReveal = windowed(progress, 0, 0.55);
       const calReveal = windowed(progress, 0.35, 1);
-      if (prPathEl) prPathEl.style.strokeDashoffset = String(1 - prReveal);
-      if (calPathEl) calPathEl.style.strokeDashoffset = String(1 - calReveal);
+      if (prPathEl) prPathEl.style.strokeDashoffset = String(prLen * (1 - prReveal));
+      if (calPathEl) calPathEl.style.strokeDashoffset = String(calLen * (1 - calReveal));
     };
     this.setPathReveal(0);
   }

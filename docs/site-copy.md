@@ -246,5 +246,5 @@ lycanalan205@gmail.com
 
 **Repo:** github.com/LycanAlan/Dispute-Autopilot
 
-**Footer:** 84 tests. Every figure on this page is checked against its artifact
+**Footer:** 112 tests. Every figure on this page is checked against its artifact
 by a script in the repo.

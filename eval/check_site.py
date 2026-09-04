@@ -41,6 +41,7 @@ word is not an instance of that word, here as well.
 import json
 import pathlib
 import re
+import subprocess
 import sys
 from typing import Iterable, NamedTuple
 
@@ -821,6 +822,45 @@ def main(root: pathlib.Path = ROOT) -> int:
                     f"{rel(points_path)} is {size:,} bytes, which is "
                     f"{actual_points:,} points at {per_point} bytes each"
                 ],
+            )
+
+    # The colophon closes by telling the reader how many tests stand behind the
+    # figures above it. That number was written once and then drifted: the page
+    # said 84 while pytest collected 112, which understates the work and, worse,
+    # is exactly the kind of unchecked claim the rest of this file exists to
+    # prevent. Counted by collection, not by grepping for "def test_", so that
+    # parametrised cases are counted the way pytest counts them.
+    test_dir = root / "tests"
+    claims = [
+        (path, line_no, int(match.group(1)))
+        for path in copy_files
+        for line_no, text in visible_strings(path)
+        for match in [re.search(r"\b(\d+) tests\b", text)]
+        if match
+    ]
+    if not test_dir.is_dir():
+        skip("the page's test count matches pytest", "tests/ does not exist")
+    elif not claims:
+        skip("the page's test count matches pytest", "no page string claims a test count")
+    else:
+        proc = subprocess.run(
+            [sys.executable, "-m", "pytest", "--collect-only", "-q"],
+            cwd=root, capture_output=True, text=True,
+        )
+        tail = re.search(r"^(\d+) tests collected", proc.stdout, re.MULTILINE)
+        if tail is None:
+            skip(
+                "the page's test count matches pytest",
+                "could not read a collected count out of pytest",
+            )
+        else:
+            collected = int(tail.group(1))
+            wrong = [(p, n, c) for p, n, c in claims if c != collected]
+            check(
+                f"the page claims {claims[0][2]} tests and pytest collects {collected}",
+                not wrong,
+                [f"{rel(p)}:{n}  claims {c} tests, pytest collects {collected}"
+                 for p, n, c in wrong],
             )
 
     # ---------------------------------------------------------------- TONE

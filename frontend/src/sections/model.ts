@@ -93,7 +93,7 @@ class ModelSection implements Section {
 
     root.innerHTML = `
       <div class="section__stage">
-        <div class="scene-field" data-field data-scene-caption="camera looking down the risk axis"></div>
+        <div class="scene-field" data-field data-scene-axis="colour = predicted risk" data-scene-caption="colour: predicted chargeback probability"></div>
         <div class="scene-overlay scene-overlay--split">
           <div class="model-section__lockup">
             <div class="ruled-kicker"><span class="kicker">The model</span></div>

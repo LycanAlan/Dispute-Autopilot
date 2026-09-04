@@ -270,6 +270,23 @@ pre {
   --ink-50: var(--bone-50);
   --ink-30: var(--bone-30);
   --paper-sunk: var(--charcoal-raised);
+
+  /*
+   * The deep green and the clay red are chosen for ink on paper. On charcoal
+   * both are darker than the ground is light, so they read as muddy rather
+   * than as green and red, worst of all at small uppercase label sizes.
+   * Amber already clears the ground, so it is left exactly as it is.
+   *
+   * This is a token remap, not a per-section patch, because three sections
+   * had independently written the identical color-mix into their own
+   * stylesheets: gate2 for its expected-value readout, live for its action
+   * labels and stamp, measured for its family figures. The same defect being
+   * fixed three times in three files is the signal that it belongs here. Any
+   * section that later puts a decision colour on charcoal now gets the
+   * legible one without knowing this problem exists.
+   */
+  --contest: color-mix(in srgb, #1F6F4A 70%, var(--bone));
+  --accept: color-mix(in srgb, #A54334 70%, var(--bone));
 }
 
 .on-charcoal ::selection {

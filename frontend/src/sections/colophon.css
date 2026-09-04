@@ -1,47 +1,92 @@
 /*
  * colophon.css
  *
- * Section 11. Quiet, confident, well set: the colophon of a printed report,
- * not a marketing footer. No buttons, no icons, no gradient. Plain text
- * links only, styled to read as text first and a link second.
+ * Section 11. No panel: the defense-only notice used to sit in a bordered
+ * box, and the author asked for it gone in favour of a title page -- one
+ * centred column, quiet and confident, each line arriving on its own as the
+ * section is scrolled. colophon.ts writes --in on every [data-line] element;
+ * this file only says what --in = 0 and --in = 1 look like.
+ *
+ * The id selector on the ground rule is the same fix every dark section on
+ * this page carries: tokens.css declares .on-charcoal before shell.css
+ * declares .section, both single class selectors, so at equal specificity
+ * source order hands the paper background to the later import. See
+ * shell.css and refusal.css for the fuller version of this note.
  */
+
+#colophon,
+#colophon.section {
+  background: var(--charcoal);
+  color: var(--bone);
+}
 
 .colophon__inner {
   display: flex;
+  justify-content: center;
+}
+
+.colophon__column {
+  display: flex;
   flex-direction: column;
-  gap: var(--space-8);
-  max-width: var(--page-max);
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 46rem;
+  text-align: center;
 }
 
-.colophon__notice {
-  margin: 0;
-  padding: var(--space-6) var(--space-7);
-  background: var(--paper-sunk);
-  border-left: 3px solid var(--ink);
-  max-width: var(--measure);
+/* Every revealed line is a pure function of --in, written by update(). No
+ * CSS transition on top: the value already changes once per scroll frame,
+ * so a transition would only add lag between the scroll and the line. */
+.colophon__line {
+  --in: 0;
+  opacity: var(--in);
+  transform: translateY(calc((1 - var(--in)) * 16px));
 }
 
-.colophon__notice p {
+/* ------------------------------------------------------------- notice */
+
+.colophon__notice-line {
   font-family: var(--font-display);
   font-size: var(--type-lede);
   line-height: 1.5;
   letter-spacing: -0.006em;
+  max-width: 42ch;
 }
 
-.colophon__notice p + p {
+/* A short centred rule rather than a box: the printer's dinkus between
+ * movements of a title page, not a container around anything. */
+.colophon__rule {
+  width: 2.5rem;
+  height: 1px;
+  background: var(--rule);
+  margin-block: var(--space-5);
+}
+
+/* ------------------------------------------------------------ headline */
+
+.colophon__headline {
+  margin: 0;
+  max-width: 30ch;
+}
+
+/* --------------------------------------------------------------- body */
+
+.colophon__body-line {
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+  color: var(--ink-70);
+  max-width: 48ch;
+}
+
+/* --------------------------------------------------------- signature */
+
+.colophon__signature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
   margin-top: var(--space-2);
-}
-
-.colophon__limits .title {
-  margin-bottom: var(--space-5);
-}
-
-.colophon__foot {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--space-7);
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--rule);
 }
 
 .colophon__name {
@@ -50,56 +95,43 @@
   margin-bottom: var(--space-2);
 }
 
-.colophon__author p,
-.colophon__meta p {
+.colophon__signature p {
   line-height: 1.7;
 }
 
-.colophon__author a,
-.colophon__meta a {
+.colophon__signature a,
+.colophon__repo a {
+  display: inline-block;
   color: inherit;
   text-decoration: underline;
   text-decoration-color: var(--rule-strong);
   text-underline-offset: 0.15em;
+  transition: transform var(--dur-fast) var(--ease-out),
+    text-decoration-color var(--dur-fast) var(--ease-out);
 }
 
-.colophon__author a:hover,
-.colophon__meta a:hover {
+/* Hover and keyboard focus both lift the link a couple of pixels. Transform
+ * and colour only, so nothing else on the page reflows while it happens. */
+.colophon__signature a:hover,
+.colophon__signature a:focus-visible,
+.colophon__repo a:hover,
+.colophon__repo a:focus-visible {
+  transform: translateY(-2px);
   text-decoration-color: currentColor;
 }
 
-.colophon__meta {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: flex-start;
-  text-align: left;
+.colophon__repo,
+.colophon__footer {
+  color: var(--ink-70);
 }
 
 .colophon__footer {
-  margin-top: var(--space-4);
   max-width: var(--measure-tight);
 }
 
-@media (max-width: 60rem) {
-  .colophon__foot {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-5);
+@media (max-width: 32rem) {
+  .colophon__notice-line,
+  .colophon__body-line {
+    max-width: 30ch;
   }
-
-  .colophon__meta {
-    align-items: flex-start;
-  }
-}
-
-/* -------------------------------------------------------- dark ground */
-
-/*
- * .colophon__notice already reads correctly: its background comes from
- * --paper-sunk, which .on-charcoal redefines to --charcoal-raised, and its
- * body text inherits colour from the section root. Only the border, written
- * straight against --ink, needed an explicit dark twin.
- */
-.on-charcoal .colophon__notice {
-  border-left-color: var(--bone);
 }

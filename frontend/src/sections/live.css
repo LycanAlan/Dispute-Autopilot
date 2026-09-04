@@ -177,21 +177,11 @@
 
 /*
  * The case-action labels and the result stamp colour themselves straight
- * from the decision colour (is-contest / is-review / is-accept). Amber
- * already reads clearly on charcoal; green and clay do not, especially at
- * the small uppercase label size, so those two are lifted toward bone the
- * same way refusal.css lifts its wires. Nothing here touches the tokens
- * themselves, only how this section's text uses them.
+ * from the decision colour (is-contest / is-review / is-accept). The lift
+ * that used to live here, making green and clay legible on charcoal, is now
+ * a token remap in tokens.css under .on-charcoal, so this section gets it
+ * for free and no longer double-applies it.
  */
-.on-charcoal .live__case-action.is-contest,
-.on-charcoal .live__stamp.is-contest {
-  color: color-mix(in srgb, var(--contest) 70%, var(--bone));
-}
-
-.on-charcoal .live__case-action.is-accept,
-.on-charcoal .live__stamp.is-accept {
-  color: color-mix(in srgb, var(--accept) 70%, var(--bone));
-}
 
 @media (max-width: 68rem) {
   .live__layout {

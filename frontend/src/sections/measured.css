@@ -67,9 +67,50 @@
 }
 
 .measured__value {
+  position: relative;
+  display: inline-block;
   font-size: var(--type-head);
   font-weight: 500;
   white-space: nowrap;
+  cursor: default;
+  transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+/*
+ * Hover and keyboard focus both lift the figure and print the exact
+ * snapshot.json key path underneath it, out of data-source. Transform and
+ * opacity only: the caption is absolutely positioned so revealing it never
+ * pushes the line below it around.
+ */
+.measured__value:hover,
+.measured__value:focus-visible {
+  transform: translateY(-2px);
+}
+
+.measured__value::after {
+  content: attr(data-source);
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: max-content;
+  max-width: 16rem;
+  transform: translate(-50%, 0);
+  margin-top: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  white-space: normal;
+  color: var(--bone-50);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.measured__value:hover::after,
+.measured__value:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 3px);
 }
 
 .measured__bars {
@@ -83,10 +124,30 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  padding: var(--space-1);
+  margin: calc(var(--space-1) * -1);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.measured__bar:hover {
+  transform: translateY(-2px);
 }
 
 .measured__bar .meter {
   color: var(--bone);
+}
+
+/* The three colour roles reused on the mini graphs: .meter__fill already
+ * paints with currentColor, so colouring the wrapper is enough to carry the
+ * same meaning from the figure down to its bar. */
+.measured__bar.is-contest .meter,
+.measured__bar.is-accept .meter,
+.measured__bar.is-review .meter {
+  color: inherit;
+}
+
+.measured__bar:hover .meter__fill {
+  filter: brightness(1.3);
 }
 
 .measured__basis {

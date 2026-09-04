@@ -25,6 +25,23 @@
  * progress. At t = 1 the multiplication is exact (x * 1 === x), which is
  * what makes ?still=1 (update(1) once) land on the real figure and not an
  * animation frame short of it.
+ *
+ * COLOUR. Three roles from tokens.css, applied to a handful of figures only,
+ * never a whole headline: --contest (is-contest) on a favourable measured
+ * result and on the money the policy saves; --accept (is-accept) on a loss
+ * figure; --review (is-review) on a bound or a caveat rather than an
+ * achievement. Precision, the uplift and groundedness get is-contest.
+ * net_before gets is-accept -- it is the loss the policy is judged against.
+ * upper_bound gets is-review -- it is a limit on how bad the worst case
+ * could be, not something to celebrate. pr_auc, recall and net_after stay
+ * bone: coloring every number on the page would say nothing. The bars reuse
+ * the same classes, since .meter__fill paints with currentColor already.
+ *
+ * HOVER. Each counter carries data-source, the exact snapshot.json key path
+ * behind it, and is keyboard focusable. Hovering or tabbing to a figure
+ * lifts it a couple of pixels and reveals that path underneath, in the same
+ * spirit as the footnote: every number here is checked against its
+ * artifact. Transform and opacity only, so nothing reflows.
  */
 
 import { register, ORDER } from '../core/registry';
@@ -112,13 +129,13 @@ class MeasuredSection implements Section {
             <article class="measured__family" data-family="a">
               <p class="measured__tag"><strong>A, measured.</strong> Model quality on held-out data.</p>
               <p class="measured__line">
-                PR-AUC <span class="num measured__value" data-counter="pr_auc"></span>,
-                precision <span class="num measured__value" data-counter="precision"></span>,
-                recall <span class="num measured__value" data-counter="recall"></span>.
+                PR-AUC <span class="num measured__value" data-counter="pr_auc" data-source="family_a.pr_auc" tabindex="0"></span>,
+                precision <span class="num measured__value is-contest" data-counter="precision" data-source="family_a.precision_at_threshold" tabindex="0"></span>,
+                recall <span class="num measured__value" data-counter="recall" data-source="family_a.recall_at_threshold" tabindex="0"></span>.
               </p>
               <div class="measured__bars">
                 <div class="measured__bar"><span class="micro">PR-AUC</span><div class="meter"><div class="meter__fill" data-bar="pr_auc"></div></div></div>
-                <div class="measured__bar"><span class="micro">Precision</span><div class="meter"><div class="meter__fill" data-bar="precision"></div></div></div>
+                <div class="measured__bar is-contest"><span class="micro">Precision</span><div class="meter"><div class="meter__fill" data-bar="precision"></div></div></div>
                 <div class="measured__bar"><span class="micro">Recall</span><div class="meter"><div class="meter__fill" data-bar="recall"></div></div></div>
               </div>
               <p class="micro measured__basis">${a.basis}</p>
@@ -127,13 +144,13 @@ class MeasuredSection implements Section {
             <article class="measured__family" data-family="b">
               <p class="measured__tag"><strong>B, simulated.</strong> What the policy would have saved.</p>
               <p class="measured__line">
-                Net loss <span class="num measured__value" data-counter="net_before"></span>
-                to <span class="num measured__value" data-counter="net_after"></span>.
+                Net loss <span class="num measured__value is-accept" data-counter="net_before" data-source="family_b.net_inr.none" tabindex="0"></span>
+                to <span class="num measured__value" data-counter="net_after" data-source="family_b.net_inr.model" tabindex="0"></span>.
                 Uplift over flag-everything:
-                <span class="num measured__value" data-counter="uplift"></span>.
+                <span class="num measured__value is-contest" data-counter="uplift" data-source="family_b.model_uplift_vs_flag_all_inr" tabindex="0"></span>.
               </p>
               <div class="measured__bars">
-                <div class="measured__bar"><span class="micro">Before, flag nothing</span><div class="meter"><div class="meter__fill" data-bar="net_before"></div></div></div>
+                <div class="measured__bar is-accept"><span class="micro">Before, flag nothing</span><div class="meter"><div class="meter__fill" data-bar="net_before"></div></div></div>
                 <div class="measured__bar"><span class="micro">After, the model</span><div class="meter"><div class="meter__fill" data-bar="net_after"></div></div></div>
               </div>
               <p class="micro measured__basis">${b.basis}</p>
@@ -142,13 +159,13 @@ class MeasuredSection implements Section {
             <article class="measured__family" data-family="c">
               <p class="measured__tag"><strong>C, measured.</strong> Whether the model invents facts.</p>
               <p class="measured__line">
-                Groundedness <span class="num measured__value" data-counter="groundedness"></span>.
+                Groundedness <span class="num measured__value is-contest" data-counter="groundedness" data-source="family_c.contestable.groundedness_mean_over_attributed" tabindex="0"></span>.
                 Upper bound on the ungrounded rate,
-                <span class="num measured__value" data-counter="upper_bound"></span> at 95% confidence.
+                <span class="num measured__value is-review" data-counter="upper_bound" data-source="family_c.contestable.ungrounded_upper_bound_95" tabindex="0"></span> at 95% confidence.
               </p>
               <div class="measured__bars">
-                <div class="measured__bar"><span class="micro">Groundedness</span><div class="meter"><div class="meter__fill" data-bar="groundedness"></div></div></div>
-                <div class="measured__bar"><span class="micro">Ungrounded upper bound</span><div class="meter"><div class="meter__fill" data-bar="upper_bound"></div></div></div>
+                <div class="measured__bar is-contest"><span class="micro">Groundedness</span><div class="meter"><div class="meter__fill" data-bar="groundedness"></div></div></div>
+                <div class="measured__bar is-review"><span class="micro">Ungrounded upper bound</span><div class="meter"><div class="meter__fill" data-bar="upper_bound"></div></div></div>
               </div>
               <p class="micro measured__basis">${strataNote}</p>
             </article>

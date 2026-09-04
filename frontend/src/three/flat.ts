@@ -57,7 +57,13 @@ export function mountFlatCanvas(container: HTMLElement): FlatCanvas {
 }
 
 export interface ScatterOptions {
-  /** Fraction of the canvas kept clear on every side, 0..0.49. */
+  /**
+   * Fraction of the canvas kept clear on every side, 0..0.49.
+   *
+   * Defaults to 0.02. It was 0.08, chosen when this drew into a portrait
+   * panel; on the wide ribbon that reserved over 200px at each end of a time
+   * axis, so the data stopped well short of the dates labelling it.
+   */
   padding?: number;
   /** Backing-store pixels per dot side. */
   dotSize?: number;
@@ -80,7 +86,7 @@ export function drawScatter(ctx: CanvasRenderingContext2D, cloud: PointCloud, op
   const image = ctx.createImageData(w, h);
   const data = image.data;
 
-  const pad = clamp01(opts.padding ?? 0.08);
+  const pad = clamp01(opts.padding ?? 0.02);
   const plotW = w * (1 - pad * 2);
   const plotH = h * (1 - pad * 2);
   const originX = w * pad;

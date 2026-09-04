@@ -46,7 +46,7 @@ class SplitSection implements Section {
 
     root.innerHTML = `
       <div class="section__stage">
-        <div class="scene-field" data-field data-scene-caption="vertical bars mark the train and calibration boundaries"></div>
+        <div class="scene-field" data-field data-scene-axis="train  |  calibration  |  test" data-scene-caption="x is time. the two marks are the train and calibration boundaries"></div>
         <div class="scene-overlay scene-overlay--split">
           <div class="split-section__lockup">
             <div class="ruled-kicker"><span class="kicker">The split</span></div>

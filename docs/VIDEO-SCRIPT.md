@@ -77,7 +77,7 @@ correct as of the current export and are here so you can rehearse. If
 
 Timings are cumulative. Total 4:55, which leaves slack.
 
-### 0:00 to 0:20 — Section 1, the title
+### 0:00 to 0:20, Section 1, the title
 
 **[Scroll slowly. Title, then the three figures.]**
 
@@ -88,7 +88,7 @@ Timings are cumulative. Total 4:55, which leaves slack.
 > Five hundred and ninety thousand real transactions. A hundred and eighteen
 > thousand of them held back, never seen during training.
 
-### 0:20 to 0:45 — Section 2, what the label means
+### 0:20 to 0:45, Section 2, what the label means
 
 **[Let the proportion bar draw, then the magnified bar with the hatched band.]**
 
@@ -103,7 +103,7 @@ Timings are cumulative. Total 4:55, which leaves slack.
 > So this predicts chargebacks. Calling it a fraud detector would be the first
 > lie, and every number after it would inherit that.
 
-### 0:45 to 1:05 — Section 3, the split
+### 0:45 to 1:05, Section 3, the split
 
 **[Let both axes draw and the connectors lean.]**
 
@@ -114,7 +114,7 @@ Timings are cumulative. Total 4:55, which leaves slack.
 > Seventy percent of the rows is not the first seventy percent of the clock.
 > That is what these two axes show, and why the connectors lean.
 
-### 1:05 to 1:40 — Section 4, calibration
+### 1:05 to 1:40, Section 4, calibration
 
 **[Both curves draw. Hover along the PR curve so the readout tracks.]**
 
@@ -128,7 +128,7 @@ Timings are cumulative. Total 4:55, which leaves slack.
 > fewer levels and average precision pays for that in ties. The ranking is
 > unchanged, and the arithmetic that follows only works on a probability.
 
-### 1:40 to 2:00 — Section 5, one dispute
+### 1:40 to 2:00, Section 5, one dispute
 
 > Now one of them. Transaction two nine eight seven zero zero seven, thirty
 > five thousand rupees, pulled back this morning under a card-absent fraud
@@ -137,7 +137,7 @@ Timings are cumulative. Total 4:55, which leaves slack.
 > Contesting is not free and it is not automatic. Fight every dispute and you
 > lose money. Fight none and you lose more. Three gates decide.
 
-### 2:00 to 2:25 — Section 6, gate one
+### 2:00 to 2:25, Section 6, gate one
 
 > Gate one. Theft, or regret?
 >
@@ -145,7 +145,7 @@ Timings are cumulative. Total 4:55, which leaves slack.
 > the probability of winning, because first-party misuse, the customer who
 > changed their mind, is the winnable kind. Genuine card theft is not.
 
-### 2:25 to 3:00 — Section 7, gate two
+### 2:25 to 3:00, Section 7, gate two
 
 **[Drag the amount slider all the way down, then back up. It passes through
 all three decisions. Verified: ACCEPT at ₹250, REVIEW at ₹750, CONTEST at
@@ -172,7 +172,7 @@ all three decisions. Verified: ACCEPT at ₹250, REVIEW at ₹750, CONTEST at
 > Note the contest fee is struck through. It is charged win or lose, so it
 > cancels in the comparison and counting it would double-charge the decision.
 
-### 3:00 to 3:45 — Section 8, gate three, the refusal
+### 3:00 to 3:45, Section 8, gate three, the refusal
 
 **[The centrepiece. Let all five claims resolve, then the struck one.]**
 
@@ -193,7 +193,7 @@ all three decisions. Verified: ACCEPT at ₹250, REVIEW at ₹750, CONTEST at
 >
 > The model drafts. It never decides.
 
-### 3:45 to 4:15 — Section 9, what was measured
+### 3:45 to 4:15, Section 9, what was measured
 
 **[Hover a figure so its snapshot key path appears underneath.]**
 
@@ -212,7 +212,7 @@ all three decisions. Verified: ACCEPT at ₹250, REVIEW at ₹750, CONTEST at
 >
 > Hover any figure and it prints the exact key in the artifact it came from.
 
-### 4:15 to 4:40 — Section 10, the pipeline running
+### 4:15 to 4:40, Section 10, the pipeline running
 
 **[Press run. Let the rows stream.]**
 
@@ -229,7 +229,7 @@ all three decisions. Verified: ACCEPT at ₹250, REVIEW at ₹750, CONTEST at
 > screen. Say it as a fact about the system, as worded above, not as a
 > narration of the rows streaming past.
 
-### 4:40 to 4:55 — Sections 11 and 12, close
+### 4:40 to 4:55, Sections 11 and 12, close
 
 **[Scroll through the try-it section to the colophon.]**
 

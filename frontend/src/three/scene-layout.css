@@ -1,29 +1,34 @@
 /*
  * scene-layout.css
  *
- * Shared by hero, label, split, model and zoom.
+ * Shared layout for hero, label, split, model and zoom.
  *
- * WHY THIS IS A RIBBON AND NOT A BOX.
+ * THE RIBBON IS GONE, AND SO IS THE PANEL BEFORE IT.
  *
- * This started as a full bleed canvas with the copy sitting on top of it,
- * which lost the text to a hundred thousand moving dots. It then became a
- * framed panel in a right hand column, which fixed legibility and cost about
- * two thirds of the fragments, but the author's verdict was that the panel
- * "does nothing and does not provide anything to the project".
+ * Three attempts at the same visual, in order:
  *
- * That was right, and the reason is proportion. The long axis of this data is
- * time and the short axis is amount, so the cloud is naturally wide and flat.
- * Putting it in a 5:4 portrait box left it floating in dead space no matter
- * where the camera went, while taking half the width away from the prose.
- * No amount of point sizing or camera tuning fixes a shape mismatch.
+ *   1. a full bleed WebGL cloud with the copy on top of it. Text lost.
+ *   2. a framed 5:4 panel in a right hand column. The author: "does nothing
+ *      and does not provide anything to the project".
+ *   3. a full width ribbon. The author, after showing it to someone else:
+ *      "these do not look good at all and dont have any indication of what
+ *      they represent, totally not making sense. My friend also did not
+ *      understand what the use of these bars."
  *
- * So the visual is now a ribbon: full width, short, with a real time axis
- * under it. The prose gets the whole measure back, the data gets the
- * proportion it always had, and the strip is the natural place to show
- * records being processed left to right.
+ * The third attempt failed for a reason worth writing down, because it is a
+ * measurement, not a matter of taste. 100,000 points drawn into a strip of
+ * roughly 1400 by 180 is about 250,000 pixels for 100,000 marks. At that
+ * density every pixel in the occupied band is covered, so the distribution
+ * saturates into a solid block. There is no shape left to read. It is not a
+ * badly styled chart, it is a chart with no information left in it.
  *
- * WebGL is gone from these five sections with it. The third dimension carried
- * predicted risk, which colour already carries. See presence.ts.
+ * The lesson generalises: a scatter of the whole dataset was never explaining
+ * anything on its own. What each section actually needs is a small diagram
+ * built for the one claim that section makes, labelled so a viewer knows what
+ * they are looking at without being told. Sections that have no such claim get
+ * no diagram, and get their layout back instead.
+ *
+ * What remains here is only the shared text layout.
  */
 
 /* ------------------------------------------------------------ the stage */
@@ -35,69 +40,10 @@
 .model-section .section__stage {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 1fr auto;
   align-content: center;
   gap: clamp(1.25rem, 3vh, 2.25rem);
   padding-inline: var(--gutter);
   padding-block-end: clamp(1rem, 3vh, 2.5rem);
-}
-
-/* The field is first in the markup; the words come first on the page. */
-.scene-overlay { order: 1; }
-.scene-field { order: 2; }
-
-/* ----------------------------------------------------------- the ribbon */
-
-.scene-field {
-  position: relative;
-  /* Breaks out of the stage gutter to the full section width. A time axis
-   * that stops short of the edges reads as a picture of a chart; one that
-   * runs the whole width reads as the instrument itself. */
-  margin-inline: calc(var(--gutter) * -1);
-  width: auto;
-  /* Short and wide. Tall enough to read a distribution, never tall enough to
-   * become the thing you look at instead of the sentence above it. */
-  height: clamp(120px, 20svh, 210px);
-  overflow: hidden;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  background: color-mix(in srgb, var(--charcoal-raised) 60%, transparent);
-}
-
-/* What the strip is showing. Sits inside the ribbon, top left, so it reads as
- * a label on an instrument rather than a caption under a picture. */
-.scene-field::before {
-  content: attr(data-scene-caption);
-  position: absolute;
-  left: 0.7rem;
-  top: 0.5rem;
-  z-index: 1;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
-  color: var(--bone-50);
-  pointer-events: none;
-}
-
-/* The axis the ribbon is drawn against, named rather than implied. Every
- * section sets data-scene-axis; without it this renders nothing. */
-.scene-field::after {
-  content: attr(data-scene-axis);
-  position: absolute;
-  right: 0.7rem;
-  bottom: 0.4rem;
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.04em;
-  color: var(--bone-50);
-  pointer-events: none;
-}
-
-.scene-canvas,
-.flat-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
 }
 
 /* ---------------------------------------------------------- the overlay */
@@ -115,12 +61,11 @@
   align-content: center;
 }
 
-/* Two columns again, now that the ribbon no longer takes one. Section 4 is
- * the only one that needs it: prose and statistics on the left, the two
- * curves on the right, both above the ribbon. */
+/* Two columns, used by section 4 only: prose and statistics on the left, the
+ * two curves on the right. */
 .scene-overlay--split {
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  align-items: center;
+  align-items: stretch;
   gap: clamp(1.5rem, 4vw, 3.5rem);
 }
 
@@ -142,33 +87,11 @@
   gap: var(--space-4);
 }
 
-/* ------------------------------------------------------- per section */
-
-/* Section 4 is dense: prose, four statistics, the admission, two charts and
- * the ribbon. Everything in the text column gives up a little size so the
- * charts keep theirs, since the charts are the part a judge stops to read. */
-.model-section .model-section__stats {
-  font-size: 0.78rem;
-}
-
-.model-section .model-section__admission {
-  font-size: 0.72rem;
-  line-height: 1.45;
-}
-
-.model-section .scene-field {
-  height: clamp(96px, 14svh, 140px);
-}
-
 /* --------------------------------------------------------------- narrow */
 
 @media (max-width: 60rem) {
   .scene-overlay--split {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-6);
-  }
-
-  .scene-field {
-    height: clamp(96px, 16svh, 150px);
   }
 }

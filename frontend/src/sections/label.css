@@ -14,8 +14,6 @@
 }
 
 .label-section .scene-overlay {
-  align-self: stretch;
-  min-height: 100svh;
   display: flex;
   align-items: center;
 }

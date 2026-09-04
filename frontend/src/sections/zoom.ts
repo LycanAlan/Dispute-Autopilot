@@ -50,7 +50,7 @@ class ZoomSection implements Section {
 
     root.innerHTML = `
       <div class="section__stage">
-        <div class="scene-field" data-field></div>
+        <div class="scene-field" data-field data-scene-caption="collapsing to the nearest sampled point to row 7"></div>
         <div class="scene-overlay">
           <div class="zoom-section__lockup" data-lockup>
             <span class="pill is-${action.toLowerCase()}" data-badge>${action}</span>

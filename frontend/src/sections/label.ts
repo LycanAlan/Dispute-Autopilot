@@ -71,7 +71,7 @@ class LabelSection implements Section {
 
     root.innerHTML = `
       <div class="section__stage">
-        <div class="scene-field" data-field></div>
+        <div class="scene-field" data-field data-scene-caption="colour: chargeback reported within 120 days"></div>
         <div class="scene-overlay">
           <div class="label-section__lockup">
             <div class="ruled-kicker"><span class="kicker">The label</span></div>

@@ -81,7 +81,7 @@ class HeroSection implements Section {
 
     root.innerHTML = `
       <div class="section__stage">
-        <div class="scene-field" data-field></div>
+        <div class="scene-field" data-field data-scene-caption="590,540 transactions. x time, y amount, z predicted risk"></div>
         <div class="scene-overlay hero__overlay">
           <div class="hero__lockup">
             <h1 class="display hero__title">Dispute Autopilot</h1>

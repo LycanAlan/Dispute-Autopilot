@@ -270,7 +270,7 @@ export async function startEngine(options: StartOptions): Promise<Engine> {
    * a moment later. The second call is a no-op when nothing moved and is the
    * whole fix when something did.
    */
-  function settleThenScroll(id: string): void {
+  function settleThenScroll(id: string, after?: () => void): void {
     const m = mounted.find((x) => x.entry.id === id);
     if (!m) {
       scrollToSection(id, true); // let it log its own warning about the id
@@ -291,7 +291,10 @@ export async function startEngine(options: StartOptions): Promise<Engine> {
     const ready = document.fonts?.ready ?? Promise.resolve();
     void ready.then(() => {
       for (const ms of beats) {
-        setTimeout(() => m.el.scrollIntoView({ block: 'start', behavior: 'auto' }), ms);
+        setTimeout(() => {
+          m.el.scrollIntoView({ block: 'start', behavior: 'auto' });
+          after?.();
+        }, ms);
       }
     });
   }
@@ -308,8 +311,38 @@ export async function startEngine(options: StartOptions): Promise<Engine> {
     // exactly what a per section filming take wants.
     for (const m of mounted) callUpdate(m, 1);
 
+    /**
+     * Give the shared canvas back to whichever section is actually on screen.
+     *
+     * The loop above sets every section to its final state in registry order.
+     * The five scene sections share one canvas and claim it as they update, so
+     * the last one to run, zoom, always ends up holding it, with the cloud
+     * collapsed to the single point that zoom's final state asks for. Every
+     * other scene section is then looking at an empty frame.
+     *
+     * ScenePresence already re-asserts on an IntersectionObserver, but that
+     * only fires on a CHANGE in visibility. ?section=hero leaves hero on
+     * screen from the start, so no change ever happens and nothing takes the
+     * canvas back. Re-applying the most visible section closes that gap, and
+     * costs one extra update on a page that is otherwise not animating.
+     */
+    const reassertVisible = (): void => {
+      let best: MountedSection | null = null;
+      let bestArea = 0;
+      for (const m of mounted) {
+        const r = m.el.getBoundingClientRect();
+        const area = Math.max(0, Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0));
+        if (area > bestArea) {
+          bestArea = area;
+          best = m;
+        }
+      }
+      if (best) callUpdate(best, 1);
+    };
+
     const target = requestedSection();
-    if (target) settleThenScroll(target);
+    if (target) settleThenScroll(target, reassertVisible);
+    else requestAnimationFrame(reassertVisible);
 
     const stillEngine: Engine = {
       sections: mounted,

@@ -1,17 +1,71 @@
 /*
  * scene-layout.css
  *
- * Shared by every section in this directory's pair (hero, label, split,
- * model, zoom): the field each one hosts either the shared WebGL canvas or
- * its own flat 2D canvas in, and the two column layout their text sits in
- * on top of it. One stylesheet so five sections do not each redefine the
- * same rules slightly differently.
+ * Shared by hero, label, split, model and zoom.
+ *
+ * THE CHANGE THIS FILE EXISTS TO RECORD.
+ *
+ * The canvas used to be `position: absolute; inset: 0`, a full bleed layer
+ * with the text sitting on top of it. Three things were wrong with that.
+ * Copy had to compete with a hundred thousand moving dots for legibility and
+ * lost. The scatter read as wallpaper rather than as an instrument, so it
+ * looked incidental instead of deliberate. And every pixel of a 1440 by 900
+ * viewport was being shaded to draw it.
+ *
+ * It is now a framed panel in its own column: bordered, captioned, sitting
+ * beside the prose rather than behind it. The frame is roughly 40% of the
+ * stage, so the same cloud costs about a third of the fragments it used to,
+ * and nothing is ever drawn underneath a word.
+ *
+ * No section markup changed to do this. The stage already held exactly two
+ * children, the field and the overlay, so making the stage a two column grid
+ * puts each in its own cell.
  */
 
+/* ------------------------------------------------------- the framed field */
+
+.hero .section__stage,
+.label-section .section__stage,
+.split-section .section__stage,
+.zoom-section .section__stage,
+.model-section .section__stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--scene-col, 0.78fr));
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, var(--space-9));
+  padding-inline: var(--gutter);
+}
+
+/* The field is first in every section's markup, so without this it takes the
+ * first column and the prose lands on the right. Ordering here rather than
+ * moving five blocks of markup keeps the DOM in reading order, which is also
+ * the order a screen reader should get: the words, then the instrument. */
+.scene-overlay { order: 1; }
+.scene-field { order: 2; }
+
 .scene-field {
-  position: absolute;
-  inset: 0;
+  /* Was absolute; inset: 0. Now a grid cell that the layout sizes. */
+  position: relative;
   overflow: hidden;
+  border: 1px solid var(--rule);
+  background: var(--charcoal-raised);
+  aspect-ratio: 5 / 4;
+  max-height: 68svh;
+  align-self: center;
+}
+
+/* The instrument label. Present so the panel reads as a readout with axes and
+ * a source, not as an abstract graphic someone liked the look of. */
+.scene-field::after {
+  content: attr(data-scene-caption);
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: var(--bone-50);
+  pointer-events: none;
 }
 
 .scene-canvas,
@@ -21,34 +75,27 @@
   height: 100%;
 }
 
+/* ----------------------------------------------------------- the overlay */
+
 .scene-overlay {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding: calc(var(--masthead-h) + var(--space-7)) var(--gutter) var(--space-8);
+  padding-block: calc(var(--masthead-h) + var(--space-6)) var(--space-7);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
-  pointer-events: none;
-}
-
-.scene-overlay > * {
+  /* The canvas is no longer underneath, so nothing needs to punch through it. */
   pointer-events: auto;
 }
 
+/* --split used to mean "text left, panel right" while the canvas spanned
+ * both. The canvas now owns the right column of the stage, so inside the
+ * overlay this collapses to one column and the panel stacks under the prose. */
 .scene-overlay--split {
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: var(--space-9);
-}
-
-@media (max-width: 60rem) {
-  .scene-overlay--split {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-7);
-  }
+  gap: var(--space-6);
 }
 
 .scene-panel {
@@ -67,4 +114,40 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-4);
+}
+
+/* ------------------------------------------------------- per section size */
+
+/* Section 4 hands over to the charts. The cloud has made its point by then,
+ * so it shrinks to a reference thumbnail and the two curves get the room. */
+.model-section .section__stage {
+  --scene-col: 0.52fr;
+}
+
+.model-section .scene-field {
+  aspect-ratio: 1 / 1;
+  max-height: 34svh;
+}
+
+/* Section 5 is the collapse to a single point. It needs to be seen. */
+.zoom-section .section__stage {
+  --scene-col: 0.9fr;
+}
+
+/* ------------------------------------------------------------- narrow */
+
+@media (max-width: 60rem) {
+  .hero .section__stage,
+  .label-section .section__stage,
+  .split-section .section__stage,
+  .zoom-section .section__stage,
+  .model-section .section__stage {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
+  .scene-field {
+    aspect-ratio: 16 / 10;
+    max-height: 40svh;
+  }
 }

@@ -58,7 +58,32 @@ export interface SweepState {
   bOpacity: number;
 }
 
-const BASE_POINT_SIZE = 6.4;
+/**
+ * Sized for the framed panel, not for a full bleed canvas.
+ *
+ * This was 6.4, chosen when the cloud spanned the whole 1440px viewport. The
+ * frame is now about 550px wide, so the same 100,000 points at the same size
+ * overlapped into smoke and the structure the section is pointing at, the
+ * density band and the two boundaries, disappeared into it. Smaller points
+ * with a little more transparency put the shape back.
+ */
+const BASE_POINT_SIZE = 2.4;
+
+/**
+ * One definition, used by BOTH the renderer and the shader.
+ *
+ * gl_PointSize is expressed in device pixels, so the vertex shader scales by
+ * this to keep a point the same physical size on any display. When the two
+ * disagreed the points were sized for a ratio the renderer was not using.
+ */
+const MAX_PIXEL_RATIO = 1.5;
+
+/** Frames drawn after each state change. See `pending`. */
+const BURST_FRAMES = 4;
+
+function pixelRatio(): number {
+  return Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
+}
 
 export class SceneController {
   readonly canvas: HTMLCanvasElement;
@@ -75,6 +100,19 @@ export class SceneController {
 
   private container: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  /**
+   * Frames still owed. A state change asks for a few rather than exactly one.
+   *
+   * Drawing a single frame per change is correct on paper and wrong in
+   * practice: the canvas can still be resizing when that frame lands, and an
+   * external screenshot sampling the canvas asynchronously (?still=1 filming,
+   * headless verification) can arrive after the buffer has been presented and
+   * catch nothing. A short burst costs a few frames of idle GPU and removes
+   * both problems, while the page at rest still renders nothing at all.
+   */
+  private pending = BURST_FRAMES;
+  /** Last fov a section asked for, before the frame shape correction. */
+  private authoredFov = 0;
   private frame = 0;
   private running = false;
 
@@ -90,7 +128,11 @@ export class SceneController {
 
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
-      antialias: true,
+      // Off, deliberately. MSAA on a 100,000 point buffer costs real frames
+      // and buys nothing here: these are round sprites whose edges are already
+      // softened in the fragment shader, not polygon silhouettes with the
+      // stair-stepping that antialiasing exists to hide.
+      antialias: false,
       alpha: true,
       powerPreference: 'high-performance',
       // Without this, the browser is free to clear the drawing buffer the
@@ -102,7 +144,12 @@ export class SceneController {
       preserveDrawingBuffer: true,
     });
     this.renderer.setClearColor(palette.charcoal, 0);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // 1.5, not 2. Fragment cost scales with the square of this, so capping at
+    // 2 on a retina panel shades four times the pixels of a 1x canvas and it
+    // was a measurable part of why scrolling stuttered. At the physical size
+    // the cloud is now drawn, 1.5 is indistinguishable from 2 by eye and
+    // roughly 44% cheaper per frame.
+    this.renderer.setPixelRatio(pixelRatio());
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
@@ -146,8 +193,8 @@ export class SceneController {
         uCollapse: { value: 0 },
         uCollapseTarget: { value: new THREE.Vector3(0, 0, 0) },
         uPointSize: { value: BASE_POINT_SIZE },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 2) },
-        uOpacity: { value: 0.92 },
+        uPixelRatio: { value: pixelRatio() },
+        uOpacity: { value: 0.7 },
         uColorNeutral: { value: palette.bone.clone() },
         uColorFraud: { value: palette.accept.clone() },
         uColorLow: { value: palette.contest.clone() },
@@ -182,6 +229,7 @@ export class SceneController {
 
   /** Moves the shared canvas into `container` if it is not already there. */
   claim(container: HTMLElement): void {
+    this.markDirty();
     if (this.container === container) return;
     this.container = container;
     container.appendChild(this.canvas);
@@ -192,24 +240,51 @@ export class SceneController {
   }
 
   private resize(): void {
+    this.markDirty();
     if (!this.container) return;
     const w = Math.max(1, this.container.clientWidth);
     const h = Math.max(1, this.container.clientHeight);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
+    if (this.authoredFov > 0) this.camera.fov = this.framedFov(this.authoredFov);
     this.camera.updateProjectionMatrix();
   }
 
   setCamera(state: CameraState): void {
+    this.markDirty();
     this.camera.position.set(state.position[0], state.position[1], state.position[2]);
     this.camera.lookAt(state.lookAt[0], state.lookAt[1], state.lookAt[2]);
-    if (state.fov !== undefined && state.fov !== this.camera.fov) {
-      this.camera.fov = state.fov;
-      this.camera.updateProjectionMatrix();
+    if (state.fov !== undefined) {
+      this.authoredFov = state.fov;
+      const fov = this.framedFov(state.fov);
+      if (fov !== this.camera.fov) {
+        this.camera.fov = fov;
+        this.camera.updateProjectionMatrix();
+      }
     }
   }
 
+  /**
+   * Corrects an authored field of view for the shape of the frame it lands in.
+   *
+   * Every section's fov was chosen while the canvas spanned the whole viewport,
+   * roughly 16:10. The cloud now lives in a 5:4 panel, and the same fov in a
+   * narrower frame leaves the subject filling about a third of it, surrounded
+   * by empty charcoal. Horizontal coverage scales with tan(fov/2) * aspect, so
+   * scaling fov by aspect / REFERENCE keeps roughly the framing each section
+   * was tuned to produce.
+   *
+   * Clamped, because this is a correction and not a licence to reframe: it may
+   * tighten by up to a quarter and may never widen past the authored value.
+   */
+  private framedFov(authored: number): number {
+    const REFERENCE_ASPECT = 1.6;
+    const ratio = Math.min(1, Math.max(0.75, this.camera.aspect / REFERENCE_ASPECT));
+    return authored * ratio;
+  }
+
   setUniforms(state: CloudUniforms): void {
+    this.markDirty();
     const u = this.material.uniforms;
     if (state.materialize !== undefined) u['uMaterialize'].value = state.materialize;
     if (state.labelMix !== undefined) u['uLabelMix'].value = state.labelMix;
@@ -224,6 +299,7 @@ export class SceneController {
   }
 
   setSweep(state: SweepState): void {
+    this.markDirty();
     this.planeA.position.x = state.ax;
     this.planeB.position.x = state.bx;
     (this.planeA.material as THREE.MeshBasicMaterial).opacity = state.aOpacity * 0.16;
@@ -233,6 +309,24 @@ export class SceneController {
   /** Renders one frame right now, without waiting for the internal loop. */
   renderNow(): void {
     this.renderer.render(this.scene, this.camera);
+    this.pending = Math.max(0, this.pending - 1);
+  }
+
+  /**
+   * Marks the next frame as worth drawing.
+   *
+   * Nothing in this scene animates on its own: camera, uniforms and sweep are
+   * all pure functions of scroll progress, pushed in by the section that owns
+   * the canvas. So a loop that renders unconditionally was shading 100,000
+   * points sixty times a second to produce an image identical to the last one,
+   * including while the page sat still.
+   *
+   * Drawing only after something actually changed is the single largest saving
+   * available here, and it costs nothing in fidelity: every state change goes
+   * through one of the setters below, and each one raises this flag.
+   */
+  private markDirty(): void {
+    this.pending = BURST_FRAMES;
   }
 
   /** Starts the internal render loop. Safe to call more than once. */
@@ -241,7 +335,7 @@ export class SceneController {
     this.running = true;
     const tick = (): void => {
       if (!this.running) return;
-      this.renderNow();
+      if (this.pending > 0) this.renderNow();
       this.frame = requestAnimationFrame(tick);
     };
     this.frame = requestAnimationFrame(tick);

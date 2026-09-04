@@ -14,8 +14,6 @@
 }
 
 .split-section .scene-overlay--split {
-  align-self: stretch;
-  min-height: 100svh;
   align-content: center;
 }
 

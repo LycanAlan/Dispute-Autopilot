@@ -1,0 +1,190 @@
+{
+  "_sample": "SAMPLE DATA. Every number in this file is -1 and every string says SAMPLE. It exists so the site builds and runs before scripts/export_site_data.py has written snapshot.json. Nothing here may be filmed, quoted, or screenshotted. The loader stamps source:'sample' when it falls back to this file.",
+  "generated_at": "1970-01-01T00:00:00Z",
+  "n_total": -1,
+  "n_sampled": -1,
+  "split": {
+    "train_end_x": -1,
+    "calib_end_x": -1
+  },
+  "family_a": {
+    "basis": "SAMPLE, NOT MEASURED",
+    "n_test": -1,
+    "positive_rate": -1,
+    "pr_auc": -1,
+    "pr_auc_uncalibrated": -1,
+    "roc_auc": -1,
+    "brier": -1,
+    "brier_uncalibrated": -1,
+    "operating_threshold": -1,
+    "operating_threshold_basis": "SAMPLE, NOT MEASURED",
+    "precision_at_threshold": -1,
+    "recall_at_threshold": -1,
+    "f1_at_threshold": -1
+  },
+  "family_b": {
+    "basis": "SAMPLE, NOT SIMULATED",
+    "assumptions": {
+      "usd_to_inr": -1,
+      "contest_fee_inr": -1,
+      "ops_cost_inr": -1,
+      "base_win_rate_fraud_coded": -1
+    },
+    "ev_optimal_threshold": -1,
+    "precision_at_ev_threshold": -1,
+    "recall_at_ev_threshold": -1,
+    "net_inr": {
+      "none": -1,
+      "all": -1,
+      "rules": -1,
+      "model": -1
+    },
+    "confusion_counts": {
+      "none": { "tp": -1, "fp": -1, "tn": -1, "fn": -1 },
+      "all": { "tp": -1, "fp": -1, "tn": -1, "fn": -1 },
+      "rules": { "tp": -1, "fp": -1, "tn": -1, "fn": -1 },
+      "model": { "tp": -1, "fp": -1, "tn": -1, "fn": -1 }
+    },
+    "model_uplift_vs_flag_all_inr": -1
+  },
+  "family_c": {
+    "basis": "SAMPLE, NOT MEASURED",
+    "model": "SAMPLE",
+    "design": "SAMPLE",
+    "contestable": {
+      "n": -1,
+      "n_declined_by_model": -1,
+      "n_malformed_responses": -1,
+      "n_attributed_bundles": -1,
+      "mean_claims_per_bundle": -1,
+      "groundedness_mean_over_attributed": -1,
+      "gate_refusal_rate": -1,
+      "ungrounded_upper_bound_95": -1
+    },
+    "adverse": {
+      "n": -1,
+      "n_declined_by_model": -1,
+      "n_malformed_responses": -1,
+      "n_attributed_bundles": -1,
+      "mean_claims_per_bundle": -1,
+      "groundedness_mean_over_attributed": -1,
+      "gate_refusal_rate": -1,
+      "ungrounded_upper_bound_95": -1
+    },
+    "cases_refused_before_any_api_call": -1,
+    "actual_usage": {
+      "api_calls": -1,
+      "input_tokens": -1,
+      "output_tokens": -1,
+      "usd": -1
+    }
+  },
+  "curves": {
+    "pr": [
+      [-1, -1],
+      [-1, -1],
+      [-1, -1]
+    ],
+    "calibration": [
+      [-1, -1],
+      [-1, -1],
+      [-1, -1]
+    ]
+  },
+  "cases": {
+    "contest": {
+      "row": -1,
+      "decision": {
+        "dispute_id": "SAMPLE",
+        "action": "CONTEST",
+        "p_chargeback": -1,
+        "p_win": -1,
+        "delta_ev_inr": -1,
+        "w_completeness": -1,
+        "missing_required": [],
+        "assumption_notice": "SAMPLE, NOT A REAL DECISION",
+        "bundle": {
+          "dispute_id": "SAMPLE",
+          "fields": { "sample_field": "SAMPLE" },
+          "claims": [
+            { "text": "SAMPLE CLAIM", "source_field": "sample_field", "grounded": true }
+          ]
+        },
+        "refused_claims": []
+      },
+      "casefile": {
+        "transaction_id": -1,
+        "posture": "ACTIVE",
+        "items": {
+          "sample_field": { "field": "sample_field", "value": "SAMPLE", "source": "SAMPLE" }
+        }
+      },
+      "bundle": {
+        "dispute_id": "SAMPLE",
+        "fields": { "sample_field": "SAMPLE" },
+        "claims": [
+          { "text": "SAMPLE CLAIM", "source_field": "sample_field", "grounded": true }
+        ]
+      }
+    },
+    "accept": {
+      "row": -1,
+      "decision": {
+        "dispute_id": "SAMPLE",
+        "action": "ACCEPT",
+        "p_chargeback": -1,
+        "p_win": -1,
+        "delta_ev_inr": -1,
+        "w_completeness": -1,
+        "missing_required": ["SAMPLE"],
+        "assumption_notice": "SAMPLE, NOT A REAL DECISION",
+        "bundle": null,
+        "refused_claims": []
+      },
+      "casefile": {
+        "transaction_id": -1,
+        "posture": "NONE",
+        "items": {}
+      }
+    },
+    "review": {
+      "row": -1,
+      "decision": {
+        "dispute_id": "SAMPLE",
+        "action": "REVIEW",
+        "p_chargeback": -1,
+        "p_win": -1,
+        "delta_ev_inr": -1,
+        "w_completeness": -1,
+        "missing_required": ["SAMPLE"],
+        "assumption_notice": "SAMPLE, NOT A REAL DECISION",
+        "bundle": null,
+        "refused_claims": ["SAMPLE UNGROUNDED CLAIM"]
+      },
+      "casefile": {
+        "transaction_id": -1,
+        "posture": "PASSIVE",
+        "items": {
+          "sample_field": { "field": "sample_field", "value": "SAMPLE", "source": "SAMPLE" }
+        }
+      }
+    }
+  },
+  "refusal": {
+    "casefile": {
+      "transaction_id": -1,
+      "posture": "ACTIVE",
+      "items": {
+        "sample_field_a": { "field": "sample_field_a", "value": "SAMPLE", "source": "SAMPLE" },
+        "sample_field_b": { "field": "sample_field_b", "value": "SAMPLE", "source": "SAMPLE" }
+      }
+    },
+    "claims": [
+      { "text": "SAMPLE GROUNDED CLAIM ONE", "source_field": "sample_field_a", "grounded": true },
+      { "text": "SAMPLE GROUNDED CLAIM TWO", "source_field": "sample_field_b", "grounded": true },
+      { "text": "SAMPLE UNGROUNDED CLAIM, THIS IS THE ONE THAT STRIKES", "source_field": null, "grounded": false }
+    ],
+    "before": "CONTEST",
+    "after": "REVIEW"
+  }
+}

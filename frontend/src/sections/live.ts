@@ -111,6 +111,8 @@ class LiveSection implements Section {
   private buttons: HTMLButtonElement[] = [];
 
   async mount(root: HTMLElement, data: Snapshot): Promise<void> {
+    root.classList.add('on-charcoal');
+
     const live = await probeHealth();
 
     const contest = data.cases.contest as unknown as LiveCase;

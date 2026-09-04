@@ -19,6 +19,8 @@ class ColophonSection implements Section {
   readonly id = 'colophon';
 
   mount(root: HTMLElement, _data: Snapshot): void {
+    root.classList.add('on-charcoal');
+
     root.innerHTML = `
       <div class="section__stage">
         <div class="section__inner colophon__inner">

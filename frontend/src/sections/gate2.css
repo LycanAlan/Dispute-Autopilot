@@ -189,3 +189,15 @@
   border-color: var(--charcoal);
   box-shadow: 0 0 0 1px var(--bone);
 }
+
+/* The expected-value readout is coloured straight from the decision colour
+   (is-contest / is-review / is-accept). Green and clay both read too dark
+   against charcoal at this text size; amber already clears it, so only those
+   two are lifted, the same way refusal.css lifts its wires. */
+.on-charcoal .gate2__row--result [data-delta].is-contest {
+  color: color-mix(in srgb, var(--contest) 70%, var(--bone));
+}
+
+.on-charcoal .gate2__row--result [data-delta].is-accept {
+  color: color-mix(in srgb, var(--accept) 70%, var(--bone));
+}

@@ -91,3 +91,15 @@
     align-items: flex-start;
   }
 }
+
+/* -------------------------------------------------------- dark ground */
+
+/*
+ * .colophon__notice already reads correctly: its background comes from
+ * --paper-sunk, which .on-charcoal redefines to --charcoal-raised, and its
+ * body text inherits colour from the section root. Only the border, written
+ * straight against --ink, needed an explicit dark twin.
+ */
+.on-charcoal .colophon__notice {
+  border-left-color: var(--bone);
+}

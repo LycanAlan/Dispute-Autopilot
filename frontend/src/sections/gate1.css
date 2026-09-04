@@ -129,3 +129,15 @@
 .on-charcoal .gate1__marker {
   stroke: var(--charcoal);
 }
+
+/* The line itself was still hardcoded to ink, invisible on charcoal. */
+.on-charcoal .gate1__line {
+  stroke: var(--bone);
+}
+
+/* Contest green read a little flat straight against charcoal; lifted toward
+   bone the same way refusal.css's wires are, so the headline figure stays
+   legible without inventing a new colour. */
+.on-charcoal .gate1__figure .figure-num {
+  color: color-mix(in srgb, var(--contest) 70%, var(--bone));
+}

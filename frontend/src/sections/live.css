@@ -149,6 +149,50 @@
   max-width: var(--measure);
 }
 
+/* -------------------------------------------------------- dark ground */
+
+/*
+ * This section used to sit on paper; it is now charcoal like the rest of the
+ * page. --ink-70/50, --rule, --rule-strong and --paper-sunk are custom
+ * properties that .on-charcoal already redefines (see tokens.css), so most of
+ * this file needed nothing. Only the handful of places written straight
+ * against --ink or --paper needed an explicit dark twin.
+ */
+.on-charcoal .live__badge--live .live__dot {
+  background: var(--bone);
+  border-color: var(--bone);
+}
+
+.on-charcoal .live__panel {
+  border-top-color: var(--bone);
+}
+
+.on-charcoal .live__case.is-selected {
+  border-color: var(--bone);
+}
+
+.on-charcoal .live__accept-note strong {
+  color: var(--bone);
+}
+
+/*
+ * The case-action labels and the result stamp colour themselves straight
+ * from the decision colour (is-contest / is-review / is-accept). Amber
+ * already reads clearly on charcoal; green and clay do not, especially at
+ * the small uppercase label size, so those two are lifted toward bone the
+ * same way refusal.css lifts its wires. Nothing here touches the tokens
+ * themselves, only how this section's text uses them.
+ */
+.on-charcoal .live__case-action.is-contest,
+.on-charcoal .live__stamp.is-contest {
+  color: color-mix(in srgb, var(--contest) 70%, var(--bone));
+}
+
+.on-charcoal .live__case-action.is-accept,
+.on-charcoal .live__stamp.is-accept {
+  color: color-mix(in srgb, var(--accept) 70%, var(--bone));
+}
+
 @media (max-width: 68rem) {
   .live__layout {
     grid-template-columns: minmax(0, 1fr);

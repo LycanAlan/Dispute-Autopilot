@@ -83,6 +83,7 @@ class Gate1 implements Section {
     const liftVal = lift(p, LIFT_CLIP);
 
     root.classList.add('section--runway');
+    root.classList.add('on-charcoal');
     root.style.height = '220svh';
 
     // Chart geometry, computed once from the real bounds and the real case.

@@ -161,6 +161,7 @@ class Gate2 implements Section {
     const sliderMax = Math.max(1000, Math.ceil((contestThreshold * 5) / 1000) * 1000);
 
     root.classList.add('section--runway');
+    root.classList.add('on-charcoal');
     root.style.height = '210svh';
 
     root.innerHTML = `

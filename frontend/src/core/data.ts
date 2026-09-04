@@ -139,8 +139,22 @@ export interface FamilyC {
 
 /** Fraction along x where each temporal split boundary sits, 0..1. */
 export interface Split {
+  /** Where the train boundary falls on the normalised time axis. */
   train_end_x: number;
+  /** Where the calibration boundary falls on the normalised time axis. */
   calib_end_x: number;
+  /**
+   * Where those same two boundaries fall by ROW COUNT: 0.70 and 0.80. The
+   * pair exists so section 3 can draw both and show the drift between them,
+   * which is the whole argument of that section. They are not the same
+   * number as train_end_x and calib_end_x, and treating them as if they were
+   * is the mistake the section is about.
+   */
+  train_end_row_frac?: number;
+  calib_end_row_frac?: number;
+  train_rows?: number;
+  calib_rows?: number;
+  test_rows?: number;
 }
 
 export interface Curves {
@@ -156,6 +170,16 @@ export interface DemoCase {
   decision: Decision;
   casefile: CaseFile;
   bundle?: EvidenceBundle;
+  /**
+   * The dispute as it arrives, before anything is decided about it. These sit
+   * at the top level of the case in snapshot.json and are what section 5 uses
+   * to say what is actually being contested: which transaction, for how much,
+   * and under which reason code the bank pulled the money back.
+   */
+  transaction_id?: number;
+  amount_inr?: number;
+  reason_code?: string;
+  p_chargeback?: number;
 }
 
 /**

@@ -1,152 +1,179 @@
 /*
  * zoom.ts
  *
- * Section 5. All 100,000 points collapse toward one, the sampled point
- * nearest to case 'contest' (row 7) by time and by risk. points.bin is a
- * stratified sample, so row 7 itself is not guaranteed to be in it; this
- * collapses toward the real drawn point that sits closest to it rather than
- * inventing a position for a row that was never sampled.
+ * Section 5. The turn from the dataset to one dispute.
+ *
+ * The author's note: "The fifth page seems empty and has no indication of
+ * what to come, reduces navigability of the user could improve this story or
+ * add pointers instead something indicating to scroll as well as tell why
+ * contest, what is being contest, the design for this is center-oriented
+ * looks nice."
+ *
+ * So the centred layout stays and the emptiness goes. Three things were
+ * missing and are now here:
+ *
+ *   WHAT is being contested. The dispute as it arrives: transaction, amount,
+ *   the reason code the bank pulled the money back under, and the model's
+ *   probability. Four facts, all from the snapshot.
+ *
+ *   WHY contest at all. Contesting costs money whether it is won or lost, so
+ *   the answer is not "because it might be won". It is that the expected
+ *   value of contesting beats the expected value of writing it off. That is
+ *   the argument the next three sections make, and saying so here is what
+ *   makes them feel like an answer rather than a change of subject.
+ *
+ *   WHAT COMES NEXT. Three numbered pointers at the three sections that
+ *   follow, so a viewer knows the shape of the rest before scrolling into it.
+ *
+ * The point cloud is gone from this section, along with the collapse-to-one
+ * animation it existed for. That animation was the reason this page had a
+ * single short paragraph floating in the middle of a lot of charcoal: the
+ * cloud was supposed to be the content. It was not.
+ *
+ * ON PURITY. Every animated value is a ramp over progress; update(1) is the
+ * finished page.
  */
-import type { PointCloud } from '../core/data';
 import { ORDER, register } from '../core/registry';
 import type { Section, Snapshot } from '../core/section';
-import { drawScatter, type FlatCanvas } from '../three/flat';
-import { flatPalette, riskRGB } from '../three/palette-map';
-import { findNearestSample } from '../three/nearest';
-import { ScenePresence } from '../three/presence';
-import type { CameraState, CloudUniforms, SweepState } from '../three/scene';
-import { toWorld, WORLD } from '../three/scene';
-import { ease, lerpVec3, windowed, type Vec3 } from '../three/util';
-import { loadPoints } from '../core/data';
+import { fmtInr, fmtPct } from '../three/format';
 
-import { MODEL_CAM_END, MODEL_LOOK_END } from './model';
-
-import '../three/scene-layout.css';
 import './zoom.css';
+
+/** Ramp from 0 to 1 across [a, b], flat outside it. */
+function span(p: number, a: number, b: number): number {
+  if (b <= a) return p >= b ? 1 : 0;
+  return Math.min(1, Math.max(0, (p - a) / (b - a)));
+}
+
+/*
+ * The reason code is shown exactly as the network writes it. An earlier pass
+ * prettified 'fraud_card_absent' by swapping underscores for commas, which
+ * produced "fraud, card, absent": three things where the code names one, and
+ * worse than the raw token for a reader who has ever seen a real chargeback
+ * notice. Codes are identifiers, so this prints the identifier.
+ */
+
+interface Cue {
+  el: HTMLElement;
+  from: number;
+  to: number;
+}
 
 class ZoomSection implements Section {
   readonly id = 'zoom';
-  readonly needsScene = true;
 
-  private presence: ScenePresence | null = null;
-  private setReveal: ((progress: number) => void) | null = null;
+  private cues: Cue[] = [];
 
-  async mount(root: HTMLElement, data: Snapshot): Promise<void> {
+  mount(root: HTMLElement, data: Snapshot): void {
     root.classList.add('on-charcoal', 'section--runway', 'zoom-section');
-    root.style.height = '220svh';
-
-    const targetA = (data.split.train_end_x - 0.5) * WORLD.width;
-    const targetB = (data.split.calib_end_x - 0.5) * WORLD.width;
+    root.style.height = '230svh';
 
     const contest = data.cases.contest;
-    const transactionId = contest.casefile.transaction_id;
-    const action = contest.decision.action;
-
-    // row 7 out of n_total, ordered in time: close enough to the very start
-    // of the axis that a linear row fraction is an honest stand-in for its
-    // exact timestamp, which the snapshot does not carry.
-    const approxDataX = data.n_total > 0 ? contest.row / data.n_total : 0;
-    const approxDataZ = contest.decision.p_chargeback;
+    const txn = contest.transaction_id ?? contest.casefile.transaction_id;
+    const amount = contest.amount_inr;
+    const reason = contest.reason_code;
+    const p = contest.p_chargeback ?? contest.decision.p_chargeback;
 
     root.innerHTML = `
       <div class="section__stage">
-        <div class="scene-field" data-field data-scene-axis="one record" data-scene-caption="narrowing to the nearest sampled record to row 7"></div>
-        <div class="scene-overlay">
-          <div class="zoom-section__lockup" data-lockup>
-            <span class="pill is-${action.toLowerCase()}" data-badge>${action}</span>
-            <h2 class="title zoom-section__head">Now just one of them.</h2>
-            <div class="prose zoom-section__body">
-              <p>
-                Transaction <span class="num" data-txn></span>. The money is
-                already gone. The bank took it back this morning.
-              </p>
-              <p>You have about a week to decide what to do about it.</p>
-            </div>
+        <div class="section__inner zoom__inner">
+          <div class="zoom__column">
+            <div class="ruled-kicker zoom__cue" data-cue><span class="kicker">One dispute</span></div>
+
+            <h2 class="title zoom__head zoom__cue" data-cue>Now just one of them</h2>
+
+            <p class="lede zoom__lede zoom__cue" data-cue>
+              The money is already gone. The bank took it back this morning and
+              you have about a week to decide what to do about it.
+            </p>
+
+            <dl class="zoom__facts">
+              <div class="zoom__fact zoom__cue" data-cue tabindex="0">
+                <dt class="micro zoom__fact-label">Transaction</dt>
+                <dd class="num zoom__fact-value" data-fact="txn"></dd>
+              </div>
+              <div class="zoom__fact zoom__cue" data-cue tabindex="0">
+                <dt class="micro zoom__fact-label">Amount at stake</dt>
+                <dd class="num zoom__fact-value is-accept" data-fact="amount"></dd>
+              </div>
+              <div class="zoom__fact zoom__cue" data-cue tabindex="0">
+                <dt class="micro zoom__fact-label">Bank's reason code</dt>
+                <dd class="num zoom__fact-value" data-fact="reason"></dd>
+              </div>
+              <div class="zoom__fact zoom__cue" data-cue tabindex="0">
+                <dt class="micro zoom__fact-label">Chargeback risk, scored</dt>
+                <dd class="num zoom__fact-value is-review" data-fact="p"></dd>
+              </div>
+            </dl>
+
+            <p class="zoom__why zoom__cue" data-cue>
+              Contesting is not free, and it is not automatic. Fighting every
+              dispute loses money, and so does fighting none. The question is
+              which ones are worth the fee, and that is a number rather than an
+              instinct.
+            </p>
+
+            <ol class="zoom__next">
+              <li class="zoom__step zoom__cue" data-cue>
+                <a href="#gate1">
+                  <span class="num zoom__step-n">01</span>
+                  <span class="zoom__step-title">Theft, or regret?</span>
+                  <span class="micro zoom__step-note">Whether this one is winnable at all</span>
+                </a>
+              </li>
+              <li class="zoom__step zoom__cue" data-cue>
+                <a href="#gate2">
+                  <span class="num zoom__step-n">02</span>
+                  <span class="zoom__step-title">Worth it, or not?</span>
+                  <span class="micro zoom__step-note">Whether the expected value clears the cost</span>
+                </a>
+              </li>
+              <li class="zoom__step zoom__cue" data-cue>
+                <a href="#refusal">
+                  <span class="num zoom__step-n">03</span>
+                  <span class="zoom__step-title">Made up, or grounded?</span>
+                  <span class="micro zoom__step-note">Every claim tied to the vault, or no claim</span>
+                </a>
+              </li>
+            </ol>
+
+            <p class="micro zoom__cue zoom__cta" data-cue>Keep scrolling</p>
           </div>
         </div>
       </div>
     `;
 
-    const txnEl = root.querySelector<HTMLElement>('[data-txn]');
-    if (txnEl) txnEl.textContent = String(transactionId);
-
-    const lockup = root.querySelector<HTMLElement>('[data-lockup]');
-    const field = root.querySelector<HTMLElement>('[data-field]');
-    if (!field) return;
-
-    // The nearest-sample search needs the decoded cloud. loadPoints() is
-    // cached in core/data.ts, so this costs nothing beyond the first call
-    // any section already made; it does not trigger a second fetch.
-    const cloud = await loadPoints();
-    const sample = findNearestSample(cloud, approxDataX, approxDataZ);
-    const collapseWorld: Vec3 = toWorld(sample.x, sample.y, sample.z);
-    const collapseDataX = sample.x;
-    const collapseDataY = sample.y;
-
-    const camEnd: Vec3 = [
-      collapseWorld[0] + 0.55,
-      collapseWorld[1] + 0.4,
-      collapseWorld[2] + 1.5,
-    ];
-    const lookEnd: Vec3 = collapseWorld;
-
-    const camera = (progress: number): CameraState => {
-      const t = ease(progress);
-      return {
-        position: lerpVec3(MODEL_CAM_END, camEnd, t),
-        lookAt: lerpVec3(MODEL_LOOK_END, lookEnd, t),
-        fov: 42,
-      };
+    const put = (key: string, text: string): void => {
+      const el = root.querySelector<HTMLElement>('[data-fact="' + key + '"]');
+      if (el) el.textContent = text;
     };
 
-    const uniforms = (progress: number): CloudUniforms => ({
-      materialize: 1,
-      labelMix: 1,
-      riskMix: 1,
-      collapse: ease(progress),
-      collapseTarget: collapseWorld,
-    });
+    put('txn', String(txn));
+    put('amount', amount === undefined ? 'not in snapshot' : fmtInr(amount));
+    put('reason', reason === undefined ? 'not in snapshot' : reason);
+    put('p', fmtPct(p, 1));
 
-    const sweep = (progress: number): SweepState => {
-      const fade = 1 - windowed(progress, 0, 0.4);
-      return { ax: targetA, bx: targetB, aOpacity: fade, bOpacity: fade };
-    };
+    const els = Array.from(root.querySelectorAll<HTMLElement>('[data-cue]'));
+    const FIRST = 0.04;
+    const STEP = 0.062;
+    const FADE = 0.09;
+    this.cues = els.map((el, i) => ({
+      el,
+      from: FIRST + i * STEP,
+      to: FIRST + i * STEP + FADE,
+    }));
 
-    const drawFlat = (flat: FlatCanvas, cloud2: PointCloud, progress: number): void => {
-      const palette = flatPalette();
-      const t = ease(progress);
-      drawScatter(flat.ctx, cloud2, {
-        dotSize: 2,
-        collapseTo: { x: collapseDataX, y: collapseDataY, amount: t },
-        colorOf: (_x, _y, z) => {
-          const [r, g, b] = riskRGB(z, palette);
-          return [r, g, b, 210];
-        },
-      });
-    };
-
-    this.presence = new ScenePresence({ camera, uniforms, sweep, drawFlat });
-    await this.presence.mount(field);
-
-    this.setReveal = (progress: number): void => {
-      const reveal = windowed(progress, 0.32, 0.88);
-      if (lockup) {
-        lockup.style.opacity = String(reveal);
-        lockup.style.transform = 'translateY(' + ((1 - reveal) * 12).toFixed(2) + 'px)';
-      }
-    };
-    this.setReveal(0);
+    this.update(0);
   }
 
   update(progress: number): void {
-    this.presence?.update(progress);
-    this.setReveal?.(progress);
+    for (const c of this.cues) {
+      c.el.style.setProperty('--in', span(progress, c.from, c.to).toFixed(3));
+    }
   }
 
   unmount(): void {
-    this.presence?.unmount();
-    this.presence = null;
-    this.setReveal = null;
+    this.cues = [];
   }
 }
 

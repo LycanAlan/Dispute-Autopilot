@@ -1,49 +1,259 @@
 /*
  * split.css
  *
- * Section 3. Text on the left, a small panel of the real boundary positions
- * on the right, the two sweeping planes filling the space between them.
+ * Section 3: one centred column, one full-width diagram of two stacked axes.
+ *
+ * Each segment is positioned absolutely between --from and --to, both real
+ * percentages read from the snapshot, and grows from its own left edge as
+ * --grow runs 0 to 1. Absolute positioning rather than a flex row is what
+ * lets the two axes line up with each other and with the connector lines
+ * between them, since all three are in the same 0 to 100 coordinate space.
  */
 
-/* See hero.css for why this override is here: .section and .on-charcoal tie
-   on specificity and .section wins the cascade order, so every charcoal
-   ground section needs its own background/color reassertion. */
-.split-section.on-charcoal {
-  background: var(--charcoal);
-  color: var(--bone);
+.split__inner {
+  display: flex;
+  justify-content: center;
 }
 
-.split-section .scene-overlay--split {
-  align-content: center;
+.split__column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 56rem;
 }
 
-.split-section__lockup {
-  max-width: 32rem;
-  background: var(--charcoal-raised);
-  padding: var(--space-6);
+.split__cue {
+  --in: 0;
+  opacity: var(--in);
+  transform: translateY(calc((1 - var(--in)) * 12px));
 }
 
-.split-section__head {
+.split__column .ruled-kicker {
+  width: 100%;
+  max-width: 34rem;
+}
+
+.split__head {
   color: var(--bone);
   margin-bottom: var(--space-5);
 }
 
-.split-section__body p {
+.split__lede {
+  color: var(--bone-70);
+  max-width: 58ch;
+  text-wrap: balance;
+  margin-bottom: clamp(1.75rem, 5vh, 3rem);
+}
+
+/* -------------------------------------------------------------- figure */
+
+.split__figure {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.split__axis {
+  width: 100%;
+}
+
+.split__axishead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: 0.45rem;
+}
+
+.split__axishead--under {
+  margin-bottom: 0;
+  margin-top: 0.45rem;
+}
+
+.split__axisname {
   color: var(--bone-70);
 }
 
-.split-section__footnote {
-  margin-top: var(--space-5);
+.split__axisnote {
+  color: var(--bone-50);
+  font-style: italic;
+}
+
+/* ----------------------------------------------------------------- bar */
+
+.split__bar {
+  position: relative;
+  height: 2.25rem;
+  background: var(--charcoal-raised);
+  border: 1px solid var(--rule);
+}
+
+.split__bar--time {
+  height: 2.75rem;
+}
+
+/*
+ * --from and --to are the segment's real edges on the 0 to 100 axis. The
+ * width is scaled by --grow so the bar builds left to right as the section
+ * is scrolled, and at --grow: 1 every segment sits at exactly its measured
+ * position. Nothing is rounded to a nicer number on the way.
+ */
+.split__seg {
+  --from: 0%;
+  --to: 100%;
+  --grow: 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--from);
+  width: calc((var(--to) - var(--from)) * var(--grow));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: filter var(--dur-fast) var(--ease-out);
+}
+
+.split__seg--train {
+  background: color-mix(in srgb, var(--bone) 22%, transparent);
+  border-right: 1px solid var(--bone-50);
+}
+
+.split__seg--calib {
+  background: color-mix(in srgb, var(--review) 42%, transparent);
+  border-right: 1px solid var(--bone-50);
+}
+
+.split__seg--test {
+  background: color-mix(in srgb, var(--contest) 42%, transparent);
+}
+
+.split__bar:hover .split__seg {
+  filter: brightness(0.8);
+}
+
+.split__bar .split__seg:hover {
+  filter: brightness(1.35);
+}
+
+.split__seglabel {
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bone);
+  white-space: nowrap;
+}
+
+.split__ticks {
+  position: relative;
+  height: 1.1rem;
+}
+
+.split__tick {
+  position: absolute;
+  top: 0;
+  left: var(--at);
+  width: 1px;
+  height: 0.5rem;
+  background: var(--bone-50);
+}
+
+/* ------------------------------------------------------------ connectors */
+
+/*
+ * The lean on these two lines is the entire section in one picture: each
+ * runs from a boundary's row-count position down to the same boundary's
+ * position in time. If volume were flat over time they would be vertical.
+ * They are not.
+ */
+.split__link {
+  display: block;
+  width: 100%;
+  height: clamp(1.5rem, 4vh, 2.5rem);
+}
+
+.split__linkline {
+  stroke: var(--review);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+/* -------------------------------------------------------------- readouts */
+
+.split__readouts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
   padding-top: var(--space-4);
   border-top: 1px solid var(--rule);
+}
+
+.split__readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: var(--space-2);
+  margin: calc(var(--space-2) * -1);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.split__readout:hover,
+.split__readout:focus-visible {
+  transform: translateY(-2px);
+}
+
+.split__readout-label {
   color: var(--bone-50);
 }
 
-.split-section__panel {
-  align-self: start;
+.split__readout-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  font-size: var(--type-small);
+  color: var(--bone);
 }
 
-.split-section__note {
-  margin-top: var(--space-4);
+/* What the number would have been if row fractions were read as time. Struck
+ * through, because it is the wrong reading and the section says so. */
+.split__was {
+  color: var(--bone-30);
+  text-decoration: line-through;
+}
+
+.split__arrow {
+  color: var(--bone-30);
+}
+
+.split__readout-rows {
   color: var(--bone-50);
+}
+
+/* ---------------------------------------------------------------- foot */
+
+.split__foot {
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
+  max-width: 62ch;
+  color: var(--bone-70);
+  text-wrap: balance;
+}
+
+/* --------------------------------------------------------------- narrow */
+
+@media (max-width: 44rem) {
+  .split__readouts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .split__seglabel {
+    font-size: 0.6rem;
+  }
 }

@@ -1,130 +1,112 @@
 /*
  * hero.ts
  *
- * Section 1. The point cloud materialises out of nothing while the camera
- * drifts, and the honest caption sits right next to the headline figure:
- * the buffer holds a sample, and the page says so next to the real total.
+ * Section 1. A title page, centred.
+ *
+ * It used to be a left-hand column of type with the point cloud drifting
+ * behind it, which left a column of empty charcoal down the right of the
+ * first thing anyone sees. The author's note was that it should be "middle
+ * centered or add something more, but not a full text box, it would look
+ * ugly for the first page". So: no box, no panel, no chart. One centred
+ * column, and under the rule three figures that say what the dataset is
+ * before any claim is made about it.
+ *
+ * The three figures are deliberately all structural or Family A (measured).
+ * Nothing simulated appears above the fold. The whole page is built on never
+ * blending the three metric families, and the title page is the easiest
+ * place in the world to blend them by accident.
+ *
+ * ON PURITY. update() is a pure function of progress: each line's --in is a
+ * ramp over a fixed window, nothing else. update(1) lands on the finished
+ * title page, which is what ?still=1 relies on.
  */
-import type { PointCloud } from '../core/data';
 import { ORDER, register } from '../core/registry';
 import type { Section, Snapshot } from '../core/section';
 import { fmtInt } from '../three/format';
-import { drawScatter, type FlatCanvas } from '../three/flat';
-import { flatPalette, indexHash } from '../three/palette-map';
-import { ScenePresence } from '../three/presence';
-import type { CameraState, CloudUniforms, SweepState } from '../three/scene';
-import { ease, lerpVec3, windowed, type Vec3 } from '../three/util';
 
-import '../three/scene-layout.css';
 import './hero.css';
 
-const CAM_START: Vec3 = [-1.6, 3.7, 23.5];
-const LOOK_START: Vec3 = [0, 1.3, 0];
-
-// Exported so label.ts can pick the camera up exactly where hero leaves it,
-// rather than approximating the same numbers a second time.
-export const HERO_CAM_END: Vec3 = [1.3, 2.05, 13];
-export const HERO_LOOK_END: Vec3 = [0, 1.0, 0];
-const CAM_END = HERO_CAM_END;
-const LOOK_END = HERO_LOOK_END;
-
-// Materialisation finishes with a beat of pure drift left in the runway, so
-// the section does not feel like it is still "loading" right up to the exit.
-const MATERIALIZE_END = 0.72;
-
-function camera(progress: number): CameraState {
-  const t = ease(progress);
-  return {
-    position: lerpVec3(CAM_START, CAM_END, t),
-    lookAt: lerpVec3(LOOK_START, LOOK_END, t),
-    fov: 50,
-  };
+/** Ramp from 0 to 1 across [a, b], flat outside it. */
+function span(p: number, a: number, b: number): number {
+  if (b <= a) return p >= b ? 1 : 0;
+  return Math.min(1, Math.max(0, (p - a) / (b - a)));
 }
 
-function uniforms(progress: number): CloudUniforms {
-  return {
-    materialize: windowed(progress, 0, MATERIALIZE_END),
-    labelMix: 0,
-    riskMix: 0,
-    collapse: 0,
-    collapseTarget: [0, 0, 0],
-  };
-}
-
-function sweep(): SweepState {
-  return { ax: -100, bx: -100, aOpacity: 0, bOpacity: 0 };
-}
-
-function drawFlat(flat: FlatCanvas, cloud: PointCloud, progress: number): void {
-  const palette = flatPalette();
-  const reveal = windowed(progress, 0, MATERIALIZE_END);
-  drawScatter(flat.ctx, cloud, {
-    dotSize: 2,
-    colorOf: (_x, _y, _z, _label, index) => {
-      const h = indexHash(index);
-      if (h > reveal) return [0, 0, 0, 0];
-      const [r, g, b] = palette.neutral;
-      return [r, g, b, 205];
-    },
-  });
-}
+const FIRST = 0.03;
+const STEP = 0.075;
+const FADE = 0.11;
 
 class HeroSection implements Section {
   readonly id = 'hero';
-  readonly needsScene = true;
 
-  private presence: ScenePresence | null = null;
+  private lines: HTMLElement[] = [];
 
-  async mount(root: HTMLElement, data: Snapshot): Promise<void> {
+  mount(root: HTMLElement, data: Snapshot): void {
     root.classList.add('on-charcoal', 'section--runway', 'hero');
-    root.style.height = '260svh';
+    root.style.height = '190svh';
 
     root.innerHTML = `
       <div class="section__stage">
-        <div class="scene-field" data-field data-scene-axis="2017-12  ──  time  ──  2018-06" data-scene-caption="${data.n_total.toLocaleString('en-US')} transactions. x is time, y is amount"></div>
-        <div class="scene-overlay hero__overlay">
-          <div class="hero__lockup">
-            <h1 class="display hero__title">Dispute Autopilot</h1>
-            <p class="lede hero__subtitle">
-              Three-stage chargeback loss prevention for Razorpay merchants.<br />
-              Predict the risk, preserve the evidence, decide on expected value.
+        <div class="section__inner hero__inner">
+          <div class="hero__column">
+            <p class="kicker hero__line hero__eyebrow" data-line>For Razorpay merchants</p>
+
+            <h1 class="display hero__line hero__title" data-line>Dispute Autopilot</h1>
+
+            <p class="lede hero__line hero__subtitle" data-line>
+              Three-stage chargeback loss prevention.
+              Predict the risk, preserve the evidence,
+              decide on expected value.
             </p>
-          </div>
-          <div class="hero__foot">
-            <div class="hero__stat">
-              <span class="figure-num" data-n-total>0</span>
-              <span class="small hero__stat-label">transactions</span>
-            </div>
-            <p class="micro hero__caption" data-caption></p>
-            <p class="micro hero__cue">Scroll.</p>
+
+            <span class="hero__line hero__rule" data-line aria-hidden="true"></span>
+
+            <dl class="hero__figures hero__line" data-line>
+              <div class="hero__figure">
+                <dt class="num hero__figure-value" data-fig="total"></dt>
+                <dd class="micro hero__figure-label">transactions scored</dd>
+              </div>
+              <div class="hero__figure">
+                <dt class="num hero__figure-value" data-fig="test"></dt>
+                <dd class="micro hero__figure-label">held back for testing</dd>
+              </div>
+              <div class="hero__figure">
+                <dt class="num hero__figure-value" data-fig="rate"></dt>
+                <dd class="micro hero__figure-label">ended in a chargeback</dd>
+              </div>
+            </dl>
+
+            <p class="micro hero__line hero__cue" data-line>Scroll</p>
           </div>
         </div>
       </div>
     `;
 
-    const totalEl = root.querySelector<HTMLElement>('[data-n-total]');
-    if (totalEl) totalEl.textContent = fmtInt(data.n_total);
+    const put = (key: string, text: string): void => {
+      const el = root.querySelector<HTMLElement>('[data-fig="' + key + '"]');
+      if (el) el.textContent = text;
+    };
 
-    const captionEl = root.querySelector<HTMLElement>('[data-caption]');
-    if (captionEl) {
-      captionEl.textContent =
-        fmtInt(data.n_sampled) + ' of them drawn here, sampled evenly across time.';
-    }
+    // Every figure is read out of the snapshot at runtime. None of them is
+    // typed into the markup, which is what check_site.py enforces and what
+    // keeps the title page honest when the model is retrained.
+    put('total', fmtInt(data.n_total));
+    put('test', fmtInt(data.family_a.n_test));
+    put('rate', (data.family_a.positive_rate * 100).toFixed(2) + '%');
 
-    const field = root.querySelector<HTMLElement>('[data-field]');
-    if (!field) return;
-
-    this.presence = new ScenePresence({ camera: (p) => camera(p), uniforms: (p) => uniforms(p), sweep, drawFlat });
-    await this.presence.mount(field);
+    this.lines = Array.from(root.querySelectorAll<HTMLElement>('[data-line]'));
+    this.update(0);
   }
 
   update(progress: number): void {
-    this.presence?.update(progress);
+    for (let i = 0; i < this.lines.length; i++) {
+      const at = FIRST + i * STEP;
+      this.lines[i].style.setProperty('--in', span(progress, at, at + FADE).toFixed(3));
+    }
   }
 
   unmount(): void {
-    this.presence?.unmount();
-    this.presence = null;
+    this.lines = [];
   }
 }
 

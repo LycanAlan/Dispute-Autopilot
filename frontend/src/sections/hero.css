@@ -1,73 +1,151 @@
 /*
  * hero.css
  *
- * Section 1. The overlay stretches the full sticky stage so the title sits
- * near the top and the stat block sits near the bottom, with the point
- * cloud materialising behind both.
+ * Section 1, centred. No panel and no chart: the title page carries type and
+ * three figures, and the space around them is the design rather than a gap
+ * waiting to be filled.
+ *
+ * The ground reassertion is not needed any more (shell.css now says a section
+ * is paper unless it opts out with .on-charcoal), so it is gone from here.
+ * See the :not() note in shell.css for the full story.
  */
 
-/*
- * .on-charcoal and .section both set background/color at equal specificity,
- * and .section is the later rule in the bundle (shell.css imports after
- * tokens.css), so it silently wins the tie and every "on-charcoal" section
- * on the site renders paper-on-paper. That is a shell ordering defect, not
- * something owned here; this rule only re-asserts the two properties this
- * section actually needs, at the specificity required to win locally.
- */
-.hero.on-charcoal {
-  background: var(--charcoal);
-  color: var(--bone);
+.hero__inner {
+  display: flex;
+  justify-content: center;
 }
 
-.hero .scene-overlay {
+.hero__column {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: var(--space-8);
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 52rem;
 }
 
-.hero__lockup {
-  max-width: 46rem;
+/* Each line is a pure function of --in, written by update(). No CSS
+ * transition on top: the value already changes once per scroll frame, so a
+ * transition would only add lag between the scroll and the type. */
+.hero__line {
+  --in: 0;
+  opacity: var(--in);
+  transform: translateY(calc((1 - var(--in)) * 14px));
+}
+
+.hero__eyebrow {
+  color: var(--bone-50);
+  margin-bottom: var(--space-5);
 }
 
 .hero__title {
-  margin-bottom: var(--space-5);
   color: var(--bone);
+  margin-bottom: var(--space-5);
 }
 
 .hero__subtitle {
   color: var(--bone-70);
+  max-width: 34ch;
+  text-wrap: balance;
 }
 
-.hero__foot {
+/* A short centred rule: the printer's mark between movements of a title
+ * page, not a container around anything. */
+.hero__rule {
+  width: 2.5rem;
+  height: 1px;
+  background: var(--rule);
+  margin-block: clamp(1.75rem, 5vh, 3rem);
+}
+
+/* -------------------------------------------------------------- figures */
+
+.hero__figures {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(1.75rem, 6vw, 4.5rem);
+  margin: 0;
+}
+
+.hero__figure {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
+  align-items: center;
+  gap: 0.35rem;
+  /* Negative margin cancels the padding, so the hover lift has room to move
+   * into without any of the three figures shifting its neighbours. */
+  padding: var(--space-2);
+  margin: calc(var(--space-2) * -1);
+  transition: transform var(--dur-fast) var(--ease-out);
 }
 
-.hero__stat {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
+.hero__figure:hover {
+  transform: translateY(-3px);
+}
+
+.hero__figure-value {
+  font-size: var(--type-head);
+  font-weight: 500;
+  line-height: 1;
   color: var(--bone);
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
-.hero__stat-label {
+.hero__figure:hover .hero__figure-value {
+  color: var(--contest);
+}
+
+.hero__figure-label {
+  margin: 0;
   color: var(--bone-50);
 }
 
-.hero__caption {
-  color: var(--bone-50);
-}
+/* ------------------------------------------------------------------ cue */
 
 .hero__cue {
-  margin-top: var(--space-4);
+  margin-top: clamp(2rem, 7vh, 4rem);
   color: var(--bone-30);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
+/* The cue is the one thing on the page that should still be moving once the
+ * title has settled, because it is the only instruction. Suppressed when the
+ * viewer has asked for less motion, and under ?still=1 for clean stills. */
+.hero__cue::after {
+  content: "";
+  display: block;
+  width: 1px;
+  height: 2rem;
+  margin: 0.75rem auto 0;
+  background: linear-gradient(to bottom, var(--bone-30), transparent);
+  animation: hero-cue 2.4s var(--ease-out) infinite;
+}
+
+@keyframes hero-cue {
+  0%   { opacity: 0; transform: scaleY(0.35); transform-origin: 0 0; }
+  40%  { opacity: 1; }
+  100% { opacity: 0; transform: scaleY(1); transform-origin: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__cue::after { animation: none; }
+}
+
+[data-still] .hero__cue::after {
+  animation: none;
+}
+
+/* --------------------------------------------------------------- narrow */
+
 @media (max-width: 40rem) {
-  .hero__lockup {
-    max-width: 100%;
+  .hero__figures {
+    gap: var(--space-5);
+  }
+
+  .hero__figure-value {
+    font-size: var(--type-title);
   }
 }

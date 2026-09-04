@@ -1,35 +1,238 @@
 /*
  * label.css
  *
- * Section 2. A single text column over the point cloud; the colour change
- * is the whole argument, so nothing else competes with it for attention.
+ * Section 2, centred, with the proportion diagram described in label.ts.
+ *
+ * Two custom properties carry every animated value, both written by
+ * update(): --in for "has this arrived" and --grow for "how far along its
+ * own width is this bar". Nothing here transitions, because the values are
+ * already updated once per scroll frame.
  */
 
-/* See hero.css for why this override is here: .section and .on-charcoal tie
-   on specificity and .section wins the cascade order, so every charcoal
-   ground section needs its own background/color reassertion. */
-.label-section.on-charcoal {
-  background: var(--charcoal);
-  color: var(--bone);
-}
-
-.label-section .scene-overlay {
+.label__inner {
   display: flex;
+  justify-content: center;
+}
+
+.label__column {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 54rem;
 }
 
-.label-section__lockup {
+.label__cue {
+  --in: 0;
+  opacity: var(--in);
+  transform: translateY(calc((1 - var(--in)) * 12px));
+}
+
+/* The ruled kicker is a flex row with a rule running off it, so it needs a
+ * width to run across; centring the column would otherwise shrink it. */
+.label__column .ruled-kicker {
+  width: 100%;
   max-width: 34rem;
-  background: var(--charcoal-raised);
-  padding: var(--space-6);
-  border-left: 2px solid var(--bone);
 }
 
-.label-section__head {
+.label__head {
   color: var(--bone);
   margin-bottom: var(--space-5);
 }
 
-.label-section__body p {
+.label__lede {
   color: var(--bone-70);
+  max-width: 54ch;
+  text-wrap: balance;
+  margin-bottom: clamp(2rem, 6vh, 3.5rem);
+}
+
+/* -------------------------------------------------------------- figure */
+
+.label__figure {
+  margin: 0;
+  width: 100%;
+  max-width: 46rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.label__scalerow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: 0.5rem;
+  color: var(--bone-50);
+}
+
+.label__scalevalue {
+  font-family: var(--font-mono);
+  color: var(--bone-70);
+}
+
+/* ------------------------------------------------------- the real scale */
+
+.label__track {
+  --in: 0;
+  position: relative;
+  height: 1.75rem;
+  background: var(--charcoal-raised);
+  border: 1px solid var(--rule);
+  opacity: var(--in);
+}
+
+.label__clay {
+  --grow: 0;
+  --width: 3.4%;
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--width) * var(--grow));
+  background: var(--accept);
+}
+
+.label__keys {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.label__key {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.label__key--clay {
+  color: var(--accept);
+}
+
+.label__key--rest {
+  color: var(--bone-50);
+}
+
+.label__swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--accept);
+  flex: none;
+}
+
+/* --------------------------------------------------------- the magnifier */
+
+/*
+ * A trapezoid from the clay segment down to the full width of the bar below,
+ * which is what says "the next bar is this sliver, enlarged" without a word.
+ * preserveAspectRatio="none" is deliberate: the shape is a pure connector and
+ * is supposed to stretch to whatever the column width is.
+ */
+.label__fan {
+  --in: 0;
+  display: block;
+  width: 100%;
+  height: clamp(1.75rem, 4vh, 2.75rem);
+  margin-top: 0.9rem;
+  opacity: var(--in);
+}
+
+/*
+ * A wash, not a shape. At full strength this filled quadrilateral read as a
+ * heavy clay wedge, which the eye takes for a chart in its own right rather
+ * than for the connector it is. The two edges carry the meaning; the fill
+ * only ties them together.
+ */
+.label__fanshape {
+  fill: var(--accept);
+  opacity: 0.14;
+}
+
+.label__fanedge {
+  stroke: var(--accept);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.7;
+}
+
+.label__zoomlabel {
+  color: var(--bone-50);
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ------------------------------------------------------ the unknown split */
+
+.label__split {
+  --in: 0;
+  position: relative;
+  height: 2.5rem;
+  background: var(--accept);
+  opacity: var(--in);
+  overflow: hidden;
+}
+
+/*
+ * The band, not a line. Its width is most of the bar because its position is
+ * genuinely unknown: the dataset labels the chargeback and not its cause. A
+ * hard divider anywhere here, 50/50 included, would invent the one number
+ * this section exists to say does not exist.
+ */
+.label__splitband {
+  --in: 0;
+  position: absolute;
+  inset: 0;
+  left: 18%;
+  right: 18%;
+  opacity: var(--in);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--charcoal) 0 3px,
+    transparent 3px 8px
+  );
+  border-inline: 1px dashed var(--bone-50);
+}
+
+.label__splitkeys {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-top: 0.5rem;
+}
+
+.label__splitkey {
+  color: var(--bone-70);
+}
+
+.label__splitkey--unknown {
+  color: var(--bone-50);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------- foot */
+
+.label__foot {
+  margin-top: clamp(2rem, 6vh, 3.25rem);
+  max-width: 54ch;
+  color: var(--bone-70);
+  text-wrap: balance;
+}
+
+/* --------------------------------------------------------------- narrow */
+
+@media (max-width: 44rem) {
+  .label__splitkeys {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: var(--space-1);
+  }
+
+  .label__keys {
+    justify-content: center;
+    gap: var(--space-3);
+  }
 }

@@ -1,169 +1,225 @@
 /*
  * split.ts
  *
- * Section 3. Two vertical planes sweep in to train_end_x and calib_end_x,
- * the real positions those boundaries fall at on the time axis the cloud is
- * drawn on, not the 70/10/20 row fractions that produced them. Those two
- * numbers differ (0.658 is not 0.70) because transaction volume is not flat
- * over time, and that gap is the whole point of this section, so it reads
- * off snapshot.json at runtime rather than off the row fractions.
+ * Section 3. Why the split is temporal, and where the boundaries really land.
+ *
+ * The old layout was a text panel beside a statistics panel, both starting at
+ * the same top edge, the right one ending well short of the left. The author:
+ * "the left box and right box look weird because they both start from the
+ * same top positon but right ends early not very aesthetically pleasing."
+ *
+ * So the two ragged columns are gone. The section is now one centred column
+ * of type over one full-width diagram, and the diagram is the argument:
+ *
+ *   two stacked axes, the same split drawn twice. On top, where the
+ *   boundaries fall by row count: exactly 0.70 and 0.80, because that is how
+ *   the split is defined. Underneath, where those same two boundaries land on
+ *   the time axis: 0.658 and 0.770. Dashed connectors run between each pair.
+ *
+ * The drift between the two rows IS the point of the section. Transaction
+ * volume is not flat over time, so seventy percent of the rows is not the
+ * first seventy percent of the elapsed time. Saying that in prose takes a
+ * paragraph a viewer will skim. Drawing both axes and letting the connectors
+ * lean makes it obvious before the paragraph is read.
+ *
+ * Both rows are read from snapshot.json rather than from the constants 0.70
+ * and 0.80. The row fractions really are exactly 0.70 and 0.80 by
+ * construction, but typing them here would mean the diagram no longer
+ * reflects a re-export that changed them, which is the failure this whole
+ * site is built to avoid.
+ *
+ * ON PURITY. Every animated value is a ramp over progress. update(1) draws
+ * the finished diagram in one call, for ?still=1.
  */
-import type { PointCloud } from '../core/data';
 import { ORDER, register } from '../core/registry';
 import type { Section, Snapshot } from '../core/section';
-import { drawScatter, type FlatCanvas } from '../three/flat';
-import { flatPalette } from '../three/palette-map';
-import { ScenePresence } from '../three/presence';
-import { fmtRatio } from '../three/format';
-import type { CameraState, CloudUniforms, SweepState } from '../three/scene';
-import { WORLD } from '../three/scene';
-import { ease, lerp, lerpVec3, windowed, type Vec3 } from '../three/util';
+import { fmtInt, fmtRatio } from '../three/format';
 
-import { LABEL_CAM_END, LABEL_LOOK_END } from './label';
-
-import '../three/scene-layout.css';
 import './split.css';
 
-export const SPLIT_CAM_END: Vec3 = [0.2, 3.7, 16.2];
-export const SPLIT_LOOK_END: Vec3 = [0, 1.3, 0];
+/** Ramp from 0 to 1 across [a, b], flat outside it. */
+function span(p: number, a: number, b: number): number {
+  if (b <= a) return p >= b ? 1 : 0;
+  return Math.min(1, Math.max(0, (p - a) / (b - a)));
+}
 
-const OFF_LEFT = -(WORLD.width / 2) - 2;
+interface Cue {
+  el: HTMLElement;
+  prop: string;
+  from: number;
+  to: number;
+}
 
 class SplitSection implements Section {
   readonly id = 'split';
-  readonly needsScene = true;
 
-  private presence: ScenePresence | null = null;
+  private cues: Cue[] = [];
 
-  async mount(root: HTMLElement, data: Snapshot): Promise<void> {
+  mount(root: HTMLElement, data: Snapshot): void {
     root.classList.add('on-charcoal', 'section--runway', 'split-section');
-    root.style.height = '240svh';
+    root.style.height = '250svh';
 
     const trainX = data.split.train_end_x;
     const calibX = data.split.calib_end_x;
-    const targetA = (trainX - 0.5) * WORLD.width;
-    const targetB = (calibX - 0.5) * WORLD.width;
+
+    // Fall back only if an older snapshot predates these keys. The fallbacks
+    // are the definition of the split, not an estimate of it.
+    const trainRowFrac = data.split.train_end_row_frac ?? 0.7;
+    const calibRowFrac = data.split.calib_end_row_frac ?? 0.8;
+
+    const rows = (n: number | undefined): string => (n === undefined ? '' : fmtInt(n) + ' rows');
 
     root.innerHTML = `
       <div class="section__stage">
-        <div class="scene-field" data-field data-scene-axis="train  |  calibration  |  test" data-scene-caption="x is time. the two marks are the train and calibration boundaries"></div>
-        <div class="scene-overlay scene-overlay--split">
-          <div class="split-section__lockup">
-            <div class="ruled-kicker"><span class="kicker">The split</span></div>
-            <h2 class="title split-section__head">A random split would have flattered us</h2>
-            <div class="prose split-section__body">
-              <p>
-                Card entities repeat across rows. Shuffle them and the same card
-                lands in train and in test, so the model recognises the answer
-                instead of predicting it.
-              </p>
-              <p>Train on the past. Score the future. 70 / 10 / 20, in time order.</p>
-            </div>
-            <p class="micro split-section__footnote">
-              Precedent for the temporal split: arXiv 2208.14417.
+        <div class="section__inner split__inner">
+          <div class="split__column">
+            <div class="ruled-kicker split__cue" data-cue="head"><span class="kicker">The split</span></div>
+
+            <h2 class="title split__head split__cue" data-cue="head">A random split would have flattered us</h2>
+
+            <p class="lede split__lede split__cue" data-cue="lede">
+              Card entities repeat across rows. Shuffle them and the same card
+              lands in train and in test, so the model recognises the answer
+              instead of predicting it. Train on the past, score the future.
             </p>
-          </div>
-          <div class="scene-panel split-section__panel">
-            <span class="kicker">Where the boundary actually falls</span>
-            <div class="readout">
-              <span class="readout__label">Train ends, position on the time axis</span>
-              <span class="readout__value" data-train-x></span>
-            </div>
-            <div class="readout">
-              <span class="readout__label">Calibration ends, position on the time axis</span>
-              <span class="readout__value" data-calib-x></span>
-            </div>
-            <p class="micro split-section__note">
-              Not 0.70 and 0.80. Those are row fractions; transaction volume
-              is not flat over time, so the same boundary sits elsewhere on it.
+
+            <figure class="split__figure">
+              <figcaption class="visually-hidden">
+                The same 70/10/20 split drawn twice: once by row count, once by
+                where those boundaries fall on the time axis.
+              </figcaption>
+
+              <!-- ------------------------------------------- by row count -->
+              <div class="split__axis split__cue" data-cue="rowaxis">
+                <div class="split__axishead">
+                  <span class="micro split__axisname">Split by row count</span>
+                  <span class="micro split__axisnote">how the split is defined</span>
+                </div>
+                <div class="split__bar" data-bar="row">
+                  <span class="split__seg split__seg--train" data-seg style="--to:${(trainRowFrac * 100).toFixed(3)}%">
+                    <span class="split__seglabel">Train</span>
+                  </span>
+                  <span class="split__seg split__seg--calib" data-seg
+                        style="--from:${(trainRowFrac * 100).toFixed(3)}%;--to:${(calibRowFrac * 100).toFixed(3)}%">
+                    <span class="split__seglabel">Calib.</span>
+                  </span>
+                  <span class="split__seg split__seg--test" data-seg
+                        style="--from:${(calibRowFrac * 100).toFixed(3)}%;--to:100%">
+                    <span class="split__seglabel">Test</span>
+                  </span>
+                </div>
+                <div class="split__ticks">
+                  <span class="split__tick" style="--at:${(trainRowFrac * 100).toFixed(3)}%" data-tick="rowtrain"></span>
+                  <span class="split__tick" style="--at:${(calibRowFrac * 100).toFixed(3)}%" data-tick="rowcalib"></span>
+                </div>
+              </div>
+
+              <!-- --------------------------------------------- connectors -->
+              <svg class="split__link split__cue" data-cue="link" viewBox="0 0 100 8"
+                   preserveAspectRatio="none" aria-hidden="true">
+                <line class="split__linkline" x1="${(trainRowFrac * 100).toFixed(3)}" y1="0"
+                      x2="${(trainX * 100).toFixed(3)}" y2="8" />
+                <line class="split__linkline" x1="${(calibRowFrac * 100).toFixed(3)}" y1="0"
+                      x2="${(calibX * 100).toFixed(3)}" y2="8" />
+              </svg>
+
+              <!-- -------------------------------------------- by real time -->
+              <div class="split__axis split__cue" data-cue="timeaxis">
+                <div class="split__bar split__bar--time" data-bar="time">
+                  <span class="split__seg split__seg--train" data-seg style="--to:${(trainX * 100).toFixed(3)}%"></span>
+                  <span class="split__seg split__seg--calib" data-seg
+                        style="--from:${(trainX * 100).toFixed(3)}%;--to:${(calibX * 100).toFixed(3)}%"></span>
+                  <span class="split__seg split__seg--test" data-seg
+                        style="--from:${(calibX * 100).toFixed(3)}%;--to:100%"></span>
+                </div>
+                <div class="split__axishead split__axishead--under">
+                  <span class="micro split__axisname">Where that lands on the time axis</span>
+                  <span class="micro split__axisnote">what the model actually sees</span>
+                </div>
+              </div>
+
+              <!-- ------------------------------------------------ readouts -->
+              <div class="split__readouts split__cue" data-cue="readouts">
+                <div class="split__readout" tabindex="0">
+                  <span class="micro split__readout-label">Train ends</span>
+                  <span class="num split__readout-value">
+                    <span class="split__was" data-was="train"></span>
+                    <span class="split__arrow" aria-hidden="true">&rarr;</span>
+                    <span class="split__is is-review" data-is="train"></span>
+                  </span>
+                  <span class="micro split__readout-rows" data-rows="train"></span>
+                </div>
+                <div class="split__readout" tabindex="0">
+                  <span class="micro split__readout-label">Calibration ends</span>
+                  <span class="num split__readout-value">
+                    <span class="split__was" data-was="calib"></span>
+                    <span class="split__arrow" aria-hidden="true">&rarr;</span>
+                    <span class="split__is is-review" data-is="calib"></span>
+                  </span>
+                  <span class="micro split__readout-rows" data-rows="calib"></span>
+                </div>
+                <div class="split__readout" tabindex="0">
+                  <span class="micro split__readout-label">Test</span>
+                  <span class="num split__readout-value">
+                    <span class="split__is" data-is="test"></span>
+                  </span>
+                  <span class="micro split__readout-rows" data-rows="test"></span>
+                </div>
+              </div>
+            </figure>
+
+            <p class="split__foot split__cue" data-cue="foot">
+              Not 0.70 and 0.80. Those are row fractions. Transaction volume is
+              not flat over time, so the same boundary sits somewhere else on
+              the clock. Precedent for the temporal split: arXiv 2208.14417.
             </p>
           </div>
         </div>
       </div>
     `;
 
-    const trainEl = root.querySelector<HTMLElement>('[data-train-x]');
-    if (trainEl) trainEl.textContent = fmtRatio(trainX);
-    const calibEl = root.querySelector<HTMLElement>('[data-calib-x]');
-    if (calibEl) calibEl.textContent = fmtRatio(calibX);
-
-    const field = root.querySelector<HTMLElement>('[data-field]');
-    if (!field) return;
-
-    const camera = (progress: number): CameraState => {
-      const t = ease(progress);
-      return {
-        position: lerpVec3(LABEL_CAM_END, SPLIT_CAM_END, t),
-        lookAt: lerpVec3(LABEL_LOOK_END, SPLIT_LOOK_END, t),
-        fov: 52,
-      };
+    const put = (attr: string, key: string, text: string): void => {
+      const el = root.querySelector<HTMLElement>('[data-' + attr + '="' + key + '"]');
+      if (el) el.textContent = text;
     };
 
-    const uniforms = (): CloudUniforms => ({
-      materialize: 1,
-      labelMix: 1,
-      riskMix: 0,
-      collapse: 0,
-      collapseTarget: [0, 0, 0],
-    });
+    put('was', 'train', fmtRatio(trainRowFrac));
+    put('was', 'calib', fmtRatio(calibRowFrac));
+    put('is', 'train', fmtRatio(trainX));
+    put('is', 'calib', fmtRatio(calibX));
+    put('is', 'test', fmtRatio(1 - calibX));
+    put('rows', 'train', rows(data.split.train_rows));
+    put('rows', 'calib', rows(data.split.calib_rows));
+    put('rows', 'test', rows(data.split.test_rows));
 
-    const sweep = (progress: number): SweepState => {
-      const tA = windowed(progress, 0, 0.68);
-      const tB = windowed(progress, 0.28, 1);
-      return {
-        ax: lerp(OFF_LEFT, targetA, tA),
-        bx: lerp(OFF_LEFT, targetB, tB),
-        aOpacity: tA,
-        bOpacity: tB,
-      };
-    };
-
-    const drawFlat = (flat: FlatCanvas, cloud: PointCloud, progress: number): void => {
-      const palette = flatPalette();
-      drawScatter(flat.ctx, cloud, {
-        dotSize: 2,
-        colorOf: (_x, _y, _z, label) => {
-          const [r, g, b] = label >= 0.5 ? palette.fraud : palette.neutral;
-          return [r, g, b, 210];
-        },
+    const cue = (sel: string, prop: string, from: number, to: number): void => {
+      root.querySelectorAll<HTMLElement>(sel).forEach((el) => {
+        this.cues.push({ el, prop, from, to });
       });
-
-      const tA = windowed(progress, 0, 0.68);
-      const tB = windowed(progress, 0.28, 1);
-      const w = flat.ctx.canvas.width;
-      const h = flat.ctx.canvas.height;
-      const pad = 0.08;
-      const plotX = (dataX: number): number => w * pad + dataX * w * (1 - pad * 2);
-
-      drawSweepLine(flat.ctx, plotX(trainX), h, tA);
-      drawSweepLine(flat.ctx, plotX(calibX), h, tB);
     };
 
-    this.presence = new ScenePresence({ camera, uniforms, sweep, drawFlat });
-    await this.presence.mount(field);
+    cue('[data-cue="head"]', '--in', 0.02, 0.14);
+    cue('[data-cue="lede"]', '--in', 0.08, 0.22);
+    cue('[data-cue="rowaxis"]', '--in', 0.20, 0.32);
+    cue('[data-bar="row"] [data-seg]', '--grow', 0.24, 0.44);
+    cue('[data-cue="link"]', '--in', 0.44, 0.58);
+    cue('[data-cue="timeaxis"]', '--in', 0.50, 0.62);
+    cue('[data-bar="time"] [data-seg]', '--grow', 0.54, 0.74);
+    cue('[data-cue="readouts"]', '--in', 0.72, 0.86);
+    cue('[data-cue="foot"]', '--in', 0.82, 0.94);
+
+    this.update(0);
   }
 
   update(progress: number): void {
-    this.presence?.update(progress);
+    for (const c of this.cues) {
+      c.el.style.setProperty(c.prop, span(progress, c.from, c.to).toFixed(3));
+    }
   }
 
   unmount(): void {
-    this.presence?.unmount();
-    this.presence = null;
+    this.cues = [];
   }
-}
-
-function drawSweepLine(ctx: CanvasRenderingContext2D, x: number, height: number, opacity: number): void {
-  if (opacity <= 0) return;
-  ctx.save();
-  ctx.globalAlpha = opacity;
-  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--bone').trim() || '#E8E4DA';
-  ctx.lineWidth = Math.max(1, height * 0.003);
-  ctx.beginPath();
-  ctx.moveTo(x, height * 0.04);
-  ctx.lineTo(x, height * 0.96);
-  ctx.stroke();
-  ctx.restore();
 }
 
 register({

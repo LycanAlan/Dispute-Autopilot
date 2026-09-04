@@ -1,286 +1,272 @@
-# Video script — Dispute Autopilot
+# Video script, 5 minutes
 
-5-minute pitch, recorded for a hiring-panel audience (Razorpay AI Buildathon,
-Track 02 — AI Risk Manager). Every number below is copied from `README.md`,
-which is itself regenerated from `eval/reports/metrics.json` — **read the
-current README beside this script before recording**; if a number here and
-the README ever disagree, the README wins and this script is stale.
+Razorpay AI Buildathon, Track 02 (AI Risk Manager). Ali Ansari / LycanAlan.
 
-**Demo rows.** Computed once, ahead of time, by `python -m eval.find_demo_rows`
-(zero API calls — it calls `decide()` directly, never the assembler). Drive
-the Triage tab straight to these row indices; do not hunt for outcomes live,
-which would call the paid assembler an unknown number of times.
-
-| Outcome | Row | p(chargeback) | Amount | Posture | Delta-EV (INR) | Note |
-|---|---|---|---|---|---|---|
-| CONTEST | 7 | 0.0581 | INR 35,067.50 | ACTIVE | +14,044.42 | low risk now, but the §8.1 assumption says a later dispute on a low-risk transaction leans first-party misuse — winnable, and the amount is large |
-| ACCEPT | 780 | 0.8067 | INR 830.00 | — | −124.16 | **the strongest beat** — 80.7% chargeback probability and the system still declines; ₹830 doesn't cover the contest fee and ops cost even at a favorable win rate |
-| REVIEW | 0 | 0.0404 | INR 5,685.50 | — | — | missing `shipping_proof`, a required field for `fraud_card_absent` — the evidence gate fires regardless of what the economics say |
-
-**Do not invent other rows.** These three are the only ones verified in
-advance. If a different index is shown live, the EV numbers on screen may
-not match this script and must be read off the app, not recited from memory.
+**This script is filmed entirely off the website.** No Streamlit, no terminal,
+no IDE. One browser window, one scroll, twelve sections. The only thing running
+behind it is the API, and only section 10 needs that.
 
 ---
 
-## Rules for the recording (do not skip)
+## Read this first
 
-1. **The classifier gets 60 seconds of airtime, total, across the whole
-   video.** It is not the differentiator — the evidence gate and the
-   groundedness verifier are. The Metrics beat (2:30–3:45) is long, but most
-   of it is about *methodology* (why a temporal split, why PR-AUC, why
-   calibration matters for EV math) and the rupee comparison against
-   baselines, not the model itself. See the timing check at the bottom of
-   this file.
-2. **Say "this is not novel."** Name the commercial products. Then say what
-   they do not publish. Do not soften this into "differentiated" or
-   "innovative" language — the README's own Prior Art section makes the same
-   claim in writing, and the video must not claim more than the document it
-   accompanies.
-3. **Show a refusal.** Both kinds, in fact — it is the most memorable thing
-   in the demo, and this system is defense-only precisely because it can
-   decline. Missing-evidence REVIEW (row 0) and the fault-injection
-   groundedness refusal are different mechanisms; show both.
-4. **Fault injection is a deliberate demonstration, never spontaneous model
-   behaviour.** Say this out loud on camera at the moment it fires. The UI's
-   own warning banner ("Fault injection active... it is not in the vault")
-   must be visible on screen when you say it — do not cut away before it
-   renders.
-5. **State the §8.1 assumption on camera**, in the Limitations beat, close to
-   verbatim.
-6. **Gate G2 language.** Say "constructs and validates a Razorpay contest
-   payload." Never say "submits to Razorpay" or "sends to Razorpay" — no run
-   of this project has transmitted a contest payload; `docs/gates/G2-razorpay-test-mode.md`
-   records this as the DRY RUN verdict, and overclaiming it is the single
-   fastest way to lose credibility with a payments-engineering panel.
+The previous version of this script was written against the Streamlit demo and
+built its centrepiece on **row 780 producing an ACCEPT decision**. That case
+does not exist. `cases.accept` in the snapshot is `null`, and the snapshot says
+why in `notes.accept_case`:
+
+> ACCEPT needs ACTIVE posture, which takes a large expected exposure, together
+> with an expected value below the negative margin, which takes a small amount.
+> The rows satisfying both are ProductCD C and S, and those products never
+> record the M1/M2/M6 address-match flags. With no flags `synthesize_casefile`
+> files no `billing_proof`, `billing_proof` is required for
+> `fraud_card_absent`, and the evidence gate returns REVIEW before expected
+> value is consulted.
+
+Filming that beat would have meant narrating a demo case that does not exist.
+
+The beat itself was a good one, though, and it survives: **section 7's slider
+reaches ACCEPT live.** Drag the amount to ₹250 and the expected value goes
+negative and the badge reads ACCEPT, for exactly the reason the old script
+wanted to make, that a small amount does not cover the cost of working the
+case. The difference is that this one is computed on screen from the real cost
+assumptions rather than read off a row that was never there.
 
 ---
 
-## Script
+## Before you record
 
-### 0:00–0:30 — The problem, in rupees
+```bash
+# 1. Figures on the page must match the artifacts, and the copy rules must hold
+python eval/check_site.py
 
-**[ON SCREEN: title card, then straight to a payments-dashboard-style visual
-or just the presenter to camera]**
+# 2. Nothing may be cut off at whatever resolution you are recording at
+python eval/check_layout.py
 
-> "Hi, I'm Ali Ansari. Merchants who fight fraud-coded chargebacks only win
-> them 17.1% of the time — that's the published rate. Contest every dispute
-> and you lose money on 83 out of every 100. Accept every dispute and you eat
-> every loss you could have fought. The right answer isn't 'always' or
-> 'never' — it's a rupee expected-value calculation, per transaction. That's
-> what this system does."
+# 3. The API, for section 10 only
+.venv/Scripts/python -m uvicorn dispute_autopilot.api.main:app --port 8000
 
-*(~65 words, ~28s at a brisk pitch pace)*
+# 4. The site
+cd frontend && npm run dev
+```
 
-### 0:30–1:00 — What it does
+Record at **1920x1080**. Every section is verified to fit at 1920x1080,
+1440x900 and 1366x768, but 1080p is what the layout was tuned for.
 
-**[ON SCREEN: a simple 3-box diagram — predict → vault → respond — or the
-architecture section of the README]**
+Hide bookmarks and use a clean browser profile. The masthead carries the
+section name and number, so the recording is self-labelling.
 
-> "Dispute Autopilot is a three-stage pipeline. Stage one scores every
-> transaction for chargeback risk at collection time. Stage two turns that
-> score into an evidence-preservation posture — because vaulting evidence
-> costs money, and most transactions are never disputed. Stage three runs
-> only when a real dispute lands: it checks whether the required evidence
-> actually exists, computes the expected value of contesting, and — only if
-> the answer is yes — asks an LLM to draft a response using nothing but the
-> vault, which a deterministic verifier checks claim by claim before
-> anything gets near Razorpay's API."
+### Filming switches
 
-*(~100 words, ~30s)*
+| Switch | What it does | When to use it |
+| --- | --- | --- |
+| `?still=1` | Freezes every section in its finished state | Stills, thumbnails, a retake of one panel |
+| `?section=<id>` | Lands directly on a section | Re-shooting one beat without scrolling to it |
+| `?flat=1` | Legacy switch, kept | Not needed now that no section uses WebGL |
 
-### 1:00–2:30 — Live demo, all three outcomes
+Section ids in order: `hero`, `label`, `split`, `model`, `zoom`, `gate1`,
+`gate2`, `refusal`, `measured`, `pipeline`, `live`, `colophon`.
 
-**[SCREEN: Streamlit app, Triage tab throughout this section]**
+**Read the numbers off the screen, not off this page.** Figures below are
+correct as of the current export and are here so you can rehearse. If
+`check_site.py` passes, the screen is right.
 
-**Shot 1 — CONTEST (row 7), ~25s**
+---
 
-**[Set "Transaction row" to 7. Let the app render.]**
+## The script
 
-> "Row 7: 5.8% chargeback risk, but ₹35,067 on the line. Low risk sounds
-> safe — but if a transaction that looked this safe *still* gets disputed
-> later, our assumption is that it's more likely to be first-party misuse
-> than genuine fraud, which means it's winnable. Expected value: plus
-> ₹14,044. CONTEST."
+Timings are cumulative. Total 4:55, which leaves slack.
 
-**[Point at the delta-EV figure and the ACTIVE posture badge. Do not linger
-on the assembled bundle here — save assembler screen time for the fault
-injection shot below.]**
+### 0:00 to 0:20 — Section 1, the title
 
-**Shot 2 — ACCEPT (row 780), ~30s — THE STRONGEST BEAT**
+**[Scroll slowly. Title, then the three figures.]**
 
-**[Set row to 780.]**
-
-> "Now watch this one. Row 780: 80.7% chargeback probability. Four out of
-> five odds this transaction gets disputed. Every instinct says fight it.
-> The system says ACCEPT. Why? It's ₹830. Even at a favorable win rate, the
-> contest fee and the ops cost don't clear ₹830 in expectation — delta-EV is
-> negative ₹124. This is the whole pitch in one screen: the system isn't
-> reacting to risk, it's reacting to *money*."
-
-**[Hold on this screen for a beat before cutting — this is the line the
-panel should remember.]**
-
-**Shot 3 — REVIEW, missing evidence (row 0), ~20s**
-
-**[Set row to 0.]**
-
-> "Row 0 looks fine on paper — low risk, ₹5,685. But the vault is missing
-> shipping proof, which `fraud_card_absent` requires. The economics never
-> get a vote here: no required evidence, no contest, full stop. REVIEW."
-
-**Shot 4 — the fault-injection refusal, ~15s**
-
-**[Switch the "Evidence assembler" radio to "Fault injection." Let the
-orange warning banner render fully before speaking.]**
-
-> "One more refusal, and I want to be completely upfront about this one: I'm
-> about to force it. This mode inserts a fabricated tracking number — 'AWB
-> ZZZ999' — that does not exist anywhere in the vault. It's a deliberate
-> demonstration, not the model going rogue."
-
-**[Trigger it. Let the groundedness gate fire on screen — the claim shows as
-ungrounded, the decision downgrades to REVIEW.]**
-
-> "There — the verifier caught it, claim by claim, and downgraded the
-> decision. That's the mechanism that keeps this defense-only: it doesn't
-> trust the model, it checks it."
-
-*(Total demo section: ~90s across four shots)*
-
-### 2:30–3:45 — Metrics
-
-**[SCREEN: Metrics tab, then the PR curve / calibration curve images]**
-
-> "Quickly, on measurement — this is methodology, not the model, so I'll
-> move fast. We report PR-AUC, not accuracy, because chargebacks are 3.4% of
-> transactions and a model that predicts 'never' is 96.6% accurate and
-> useless. Calibrated PR-AUC is 0.4243, ROC-AUC 0.87. The train/test split is
-> temporal, not random — IEEE-CIS links related transactions by account and
-> billing address, so a random split leaks information across the boundary.
-> We ran a censoring check on that split before trusting it — clean. And
-> this is the calibration curve: predicted probability against observed
-> frequency. Every downstream rupee number is an expected-value calculation,
-> so if the probabilities are wrong, the money is wrong — calibration is
-> what makes stage three's math mean anything."
-
-**[Cut to the rupee bar chart / net_inr table]**
-
-> "Against real baselines, in rupees, not accuracy: flagging nothing loses
-> 53.7 million. Flagging everything loses 3.2 million. The model loses 2.7
-> million — better than flag-everything by ₹542,539. That margin is real but
-> it's not huge relative to the two numbers being subtracted, and the README
-> says so."
-
-*(~190 words, ~75s. Cumulative "about the classifier itself" airtime so far:
-roughly 20–25s inside this beat, well under the 60s budget.)*
-
-### 3:45–4:30 — Fee slider, then limitations, out loud
-
-**[SCREEN: Economics tab, move the fee slider live]**
-
-> "Razorpay doesn't publish a dispute fee, so we built a slider instead of
-> guessing one number. Push the fee up — contesting gets less attractive,
-> and the optimal threshold moves. That's the sensitivity analysis, live, not
-> a static chart."
-
-**[Cut to camera or a text card with the assumption notice]**
-
-> "Now the limitations, because a submission that hides its own weak points
-> doesn't deserve to be trusted on the strong ones. The core assumption:
-> 'Contest recommendations rest on an inference that is not validated by
-> this dataset: a transaction scored as low chargeback risk that is
-> nevertheless charged back is treated as more likely to be first-party
-> misuse. IEEE-CIS cannot separate first-party misuse from third-party
-> fraud, so this is calibrated to published industry base rates, not
-> measured here.' That's quoted verbatim — it's in the README, and it's on
-> every decision this system returns. Second: the evidence corpus is
-> synthetic, built deterministically from real transaction features, but
-> synthetic. Third: the groundedness verifier catches invented identifiers —
-> tracking numbers, order refs — it does not catch invented prose that cites
-> a real source key. That's the refusal gate's job, not this function's, and
-> the README says so."
-
-*(~185 words, ~45s)*
-
-### 4:30–5:00 — Real vs synthetic, prior art, next steps
-
-**[SCREEN: back to camera, or the Prior Art table in the README]**
-
-> "One more time, plainly: the decision model is real — IEEE-CIS labels,
-> held-out temporal split, published metrics. The evidence documents it
-> argues from are synthetic, because this dataset has no order records or
-> tracking numbers. Don't confuse the two.
+> Chargebacks cost Indian merchants real money, and most of that loss is
+> avoidable. Dispute Autopilot scores every transaction, keeps the evidence,
+> and decides which disputes are worth fighting.
 >
-> And this is not novel. Stripe Smart Disputes, Chargeflow, Justt,
-> Midigator, Kount, Visa's Verifi Order Insight, Mastercard's Ethoca
-> Consumer Clarity — all of this ships today, in production, to real
-> merchants. What none of them publish is precision, recall, calibration, or
-> a false-positive cost. This project is the open, measurable version of the
-> same idea.
->
-> On the Razorpay side specifically: Stage three constructs and validates a
-> Razorpay contest payload against their documented evidence schema — it
-> does not submit one. Test-mode credentials authenticate, but a test
-> account has no real chargebacks to contest against, so that last step is
-> implemented and unexercised, not demonstrated. That's the honest next
-> step: run this against a real test-mode dispute the moment one exists."
+> Five hundred and ninety thousand real transactions. A hundred and eighteen
+> thousand of them held back, never seen during training.
 
-*(~155 words, ~30s)*
+### 0:20 to 0:45 — Section 2, what the label means
+
+**[Let the proportion bar draw, then the magnified bar with the hatched band.]**
+
+> Here is the first honest thing. The dataset's fraud label does not mean
+> fraud. It means a chargeback was reported within a hundred and twenty days.
+>
+> Three point four percent of transactions. And inside that sliver are two
+> completely different things: a stolen card, and a customer who changed their
+> mind. The data never says which. That hatched band is not a design choice.
+> It is the honest answer.
+>
+> So this predicts chargebacks. Calling it a fraud detector would be the first
+> lie, and every number after it would inherit that.
+
+### 0:45 to 1:05 — Section 3, the split
+
+**[Let both axes draw and the connectors lean.]**
+
+> Card entities repeat across rows. Shuffle them and the same card lands in
+> training and in test, and the model recognises the answer instead of
+> predicting it. So the split is temporal. Train on the past, score the future.
+>
+> Seventy percent of the rows is not the first seventy percent of the clock.
+> That is what these two axes show, and why the connectors lean.
+
+### 1:05 to 1:40 — Section 4, calibration
+
+**[Both curves draw. Hover along the PR curve so the readout tracks.]**
+
+> The next stage multiplies this score by a rupee amount, so it has to be a
+> probability, not a ranking. Isotonic calibration takes the Brier score from
+> point zero seven eight to point zero two four. Three times better.
+>
+> And it makes PR-AUC slightly worse, from forty four percent to forty two.
+> That is on the screen, in the panel, because hiding it would be the second
+> lie. Isotonic regression is a step function, so it collapses scores into
+> fewer levels and average precision pays for that in ties. The ranking is
+> unchanged, and the arithmetic that follows only works on a probability.
+
+### 1:40 to 2:00 — Section 5, one dispute
+
+> Now one of them. Transaction two nine eight seven zero zero seven, thirty
+> five thousand rupees, pulled back this morning under a card-absent fraud
+> code. The money is already gone and there is about a week to respond.
+>
+> Contesting is not free and it is not automatic. Fight every dispute and you
+> lose money. Fight none and you lose more. Three gates decide.
+
+### 2:00 to 2:25 — Section 6, gate one
+
+> Gate one. Theft, or regret?
+>
+> This runs backwards from what people expect. A low chargeback score raises
+> the probability of winning, because first-party misuse, the customer who
+> changed their mind, is the winnable kind. Genuine card theft is not.
+
+### 2:25 to 3:00 — Section 7, gate two
+
+**[Drag the amount slider all the way down, then back up. It passes through
+all three decisions. Verified: ACCEPT at ₹250, REVIEW at ₹750, CONTEST at
+₹1,500, with ops cost fixed at ₹250.]**
+
+> Gate two. Winnable is not the same as worth it.
+>
+> Expected value: probability of winning, times the amount, minus what it costs
+> to work the case. Watch what happens as I drag the amount down.
+>
+> **[Drag to the bottom. Badge reads ACCEPT, expected value goes negative.]**
+>
+> At two hundred and fifty rupees the expected value is negative. The system
+> says accept the loss. Not because it would lose the dispute, the win
+> probability has not moved, but because winning it costs more than it
+> recovers.
+>
+> **[Drag back up through REVIEW to CONTEST.]**
+>
+> Same case, same win probability, and the decision walks from accept, through
+> review, to contest. That is the whole argument for expected value over a
+> fixed rule. A rule cannot do this.
+>
+> Note the contest fee is struck through. It is charged win or lose, so it
+> cancels in the comparison and counting it would double-charge the decision.
+
+### 3:00 to 3:45 — Section 8, gate three, the refusal
+
+**[The centrepiece. Let all five claims resolve, then the struck one.]**
+
+> Gate three, and this is the part I care most about.
+>
+> Ask a language model for a representment and it will produce one. Tracking
+> number, delivery date, signature. Fluent and complete, whether or not any of
+> it happened.
+>
+> So every sentence in the draft has to point at a key in the evidence file. A
+> deterministic check walks each one. No model marks its own work.
+>
+> **[Pause on the struck claim.]**
+>
+> This claim points at nothing. There is no such tracking number in the vault.
+> So the decision is downgraded: CONTEST becomes REVIEW, and a person sees the
+> sentence that was rejected.
+>
+> The model drafts. It never decides.
+
+### 3:45 to 4:15 — Section 9, what was measured
+
+**[Hover a figure so its snapshot key path appears underneath.]**
+
+> Three families of number, and they are never averaged together.
+>
+> A is measured on held-out data: precision fifty six percent, recall thirty
+> nine.
+>
+> B is simulated under stated cost assumptions. Net loss falls from five point
+> three seven crore to twenty seven lakh, and beats flagging everything by
+> about five and a half lakh. Simulated, and labelled simulated.
+>
+> C is measured generation quality. Every attributed claim was grounded. The
+> sample is small, so the honest ceiling is a thirty percent upper bound on the
+> ungrounded rate, and that bound is on the screen too.
+>
+> Hover any figure and it prints the exact key in the artifact it came from.
+
+### 4:15 to 4:40 — Section 10, the pipeline running
+
+**[Press run. Let the rows stream.]**
+
+> None of that is a recording. This calls the API, scores real rows, and shows
+> the decisions as they land.
+>
+> The evidence gate runs before the model does, so a case with nothing to cite
+> never reaches an API call at all. Across the whole generation evaluation,
+> seven cases refused that way, and the entire run cost fifteen cents.
+
+> **Accuracy note.** The "seven cases refused before any API call" figure is
+> `family_c.cases_refused_before_any_api_call`, measured across the offline
+> generation evaluation. It is **not** a count of what section 10 produces on
+> screen. Say it as a fact about the system, as worded above, not as a
+> narration of the rows streaming past.
+
+### 4:40 to 4:55 — Sections 11 and 12, close
+
+**[Scroll through the try-it section to the colophon.]**
+
+> You can run one yourself.
+>
+> This system is defense-only. It scores disputes and drafts grounded
+> responses. It cannot generate, alter, or synthesise evidence, and when the
+> evidence it needs is not there, it refuses and asks for a human.
+>
+> The evidence documents are synthetic and the page says so. The chargeback
+> labels are real. A hundred and twelve tests, and every figure on that page is
+> checked against its artifact by a script in the repo.
 
 ---
 
-## Timing check
+## Pre-flight checklist
 
-| Beat | Budget | Approx. word count | Approx. spoken time |
-|---|---|---|---|
-| 0:00–0:30 | 30s | ~65 | ~28s |
-| 0:30–1:00 | 30s | ~100 | ~30s |
-| 1:00–2:30 | 90s | 4 shots, screen-heavy | ~90s |
-| 2:30–3:45 | 75s | ~190 | ~75s |
-| 3:45–4:30 | 45s | ~185 | ~45s |
-| 4:30–5:00 | 30s | ~155 | ~30s |
-| **Total** | **5:00** | | **~5:00** |
+- [ ] `python eval/check_site.py` passes
+- [ ] `python eval/check_layout.py` passes at your recording resolution
+- [ ] API is up on 8000, `curl localhost:8000/health` returns 200
+- [ ] Site is up, and the masthead does **not** show a `SAMPLE` stamp
+      (if it does, `snapshot.json` is missing and every figure is a placeholder)
+- [ ] Section 7's slider walks ACCEPT to REVIEW to CONTEST when dragged up
+- [ ] Section 8's replay button works, for a second take without rescrolling
+- [ ] Section 10's run button reaches the API and rows stream
+- [ ] Browser zoom at 100%, bookmarks hidden, notifications off
 
-**Classifier-airtime budget (rule 1):** the only segments that talk about the
-LightGBM model itself, as opposed to methodology, the evidence system, or
-economics, are inside the 2:30–3:45 beat — roughly the PR-AUC/ROC-AUC/
-calibration sentences, about 20–25 seconds. Comfortably under the 60s cap.
+## What not to claim on camera
 
-## Family C — what to say if the numbers exist by recording time
-
-As of this script being written, `eval/reports/generation_metrics.json` does
-not exist — `eval/run_generation_eval.py` (Task 8.2) has been written but
-deliberately not run, because every case it assembles is one paid API call
-and nothing in this project's budget has been spent yet. **Do not hand-type
-Family C numbers into this script or say them on camera from memory.**
-
-If, by the time this video is recorded, the project owner has run
-`python -m eval.run_generation_eval` deliberately and
-`eval/reports/generation_metrics.json` exists, read `groundedness_mean` and
-`gate_refusal_rate` directly from that file and add one sentence to the
-fault-injection shot (1:00–2:30) or the limitations beat (3:45–4:30), e.g.:
-
-> "Across a batch of assembled cases, groundedness averaged
-> {groundedness_mean} — and remember, `completeness_refusal_rate` in that
-> report is ~0.5 by construction, not a finding; `gate_refusal_rate` is the
-> number that matters."
-
-If the file does not exist, say nothing about batch numbers — the fault
-injection shot already proves the mechanism works on one case, live, and the
-script above does not depend on the batch metric existing.
-
-## Recording checklist
-
-- [ ] Read the current `README.md` immediately before recording; if any
-      number in this script has changed, fix the script first.
-- [ ] Confirm rows 7, 780, and 0 still produce the outcomes in the table
-      above by running `python -m eval.find_demo_rows` (zero API calls) —
-      if the model or config changed since this script was written, the
-      indices may no longer match.
-- [ ] Record with the "Deterministic (free)" or the row-7/row-780/row-0 path
-      that does not require the live assembler, except for the single
-      fault-injection shot, which never touches the network either — it
-      fabricates the claim locally and lets the *verifier* reject it.
-- [ ] Upload unlisted to YouTube.
-- [ ] Add the link to `README.md`.
+- Do **not** say the system detects fraud. It predicts chargebacks.
+- Do **not** quote a representment win rate. None can be inferred from this
+  data and nothing in the project claims one.
+- Do **not** present family B's rupee figures as measured. They are simulated
+  under the assumptions in `config/costs.yaml`.
+- Do **not** describe the evidence documents as real. They are synthetic, and
+  the colophon says so on screen.
+- Do **not** film an ACCEPT decision **as a demo case**. `cases.accept` is
+  `null` and no row in the snapshot reaches ACCEPT through the full triage
+  path. Section 7's slider showing ACCEPT is a live expected-value computation
+  and is completely legitimate to film, which is where that beat now lives.

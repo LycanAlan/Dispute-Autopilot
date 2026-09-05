@@ -65,10 +65,9 @@ REASON = "fraud_card_absent"
 # ProductCD C or S, which never carries M1/M2/M6. No AVS flags means
 # synthesize_casefile files no billing_proof, billing_proof is required for
 # fraud_card_absent, and the required-evidence gate forces REVIEW before
-# economics is ever consulted. docs/VIDEO-SCRIPT.md and docs/SESSION-HANDOFF.md
-# still name row 780 as the ACCEPT demo; it now decides REVIEW. Rather than
-# fabricate a case, this exporter writes cases.accept = null and says why in
-# notes.accept_case.
+# economics is ever consulted. Row 780 was once the ACCEPT demo and now decides
+# REVIEW. Rather than fabricate a case, this exporter writes cases.accept = null
+# and says why in notes.accept_case, which the site reads at runtime.
 DEMO_ROWS: dict[str, int | None] = {"contest": 7, "accept": None, "review": 0}
 EXPECTED_ACTION = {"contest": "CONTEST", "accept": "ACCEPT", "review": "REVIEW"}
 

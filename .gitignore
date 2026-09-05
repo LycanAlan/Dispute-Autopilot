@@ -14,3 +14,19 @@ venv/
 artifacts/
 *.egg-info/
 build/
+
+# Working notes, kept locally and out of the public repo.
+#
+# These are written for the author, not for a reader of this repository: the
+# narration script and shot list for the pitch video, the session handoff, and
+# the plan and spec documents the build was executed against. The engineering
+# documentation a visitor actually wants stays tracked: README.md,
+# docs/ARCHITECTURE.md, docs/FINDINGS.md, docs/site-copy.md and docs/gates/.
+docs/VIDEO-SCRIPT.md
+docs/SESSION-HANDOFF.md
+docs/superpowers/
+
+# Agent and editor working directories. Never were tracked; named here so they
+# cannot be added by an absent-minded `git add -A`.
+.superpowers/
+.claude/

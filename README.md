@@ -217,11 +217,12 @@ Three tabs: Triage (score a transaction, watch it produce `CONTEST`/`ACCEPT`/`RE
 
 ## Demo video
 
-5-minute pitch script and shot list: [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
-**Recording pending** — the script names the exact demo rows to drive to
-(CONTEST, ACCEPT, REVIEW, and a fault-injection refusal), so recording it is
-a read-and-click exercise, not an ad-lib. Link will be added here once the
-video is recorded and uploaded unlisted to YouTube.
+**Recording pending.** The link goes here once the video is uploaded.
+
+It is filmed entirely from the site in `frontend/`, which walks the whole
+pipeline in twelve sections. Two of those are live rather than recorded:
+section 7 recomputes the expected value as the disputed amount is dragged, and
+section 10 calls the API and scores real rows on screen.
 
 ## Architecture
 

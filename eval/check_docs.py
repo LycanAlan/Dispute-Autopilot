@@ -87,7 +87,25 @@ def main() -> int:
     check("findings log linked", "docs/FINDINGS.md" in readme)
 
     print("\nHYGIENE")
-    check("no absolute home directories", "lycan" not in everything.lower())
+    # Matches a home directory PATH, not the author's name.
+    #
+    # This used to be `"lycan" not in everything.lower()`, which is the author's
+    # own alias, so it fired on the byline, the GitHub URL and the contact
+    # address in the site copy: every legitimate attribution in the project
+    # failed a hygiene check about leaked local paths. A check that cannot tell
+    # an author's name from a filesystem path is not checking what its label
+    # says, and the fix for it is not to delete the byline.
+    #
+    # What actually matters is that no document quotes a machine-specific
+    # absolute path, so that is what is matched: a home root, on either
+    # platform, with something after it.
+    home_paths = re.findall(
+        r"(?:[A-Za-z]:\\Users\\|/home/|/Users/)[A-Za-z0-9._-]+",
+        everything,
+    )
+    if home_paths:
+        print("          " + ", ".join(sorted(set(home_paths))[:5]))
+    check("no absolute home directories", not home_paths)
     check(
         "one model named across the docs",
         "claude-sonnet-5" in everything and "claude-opus-5" not in everything,

@@ -1,9 +1,9 @@
 /*
  * section.ts
  *
- * The one interface every section implements. Four agents build against this
- * in parallel, so the signature below is copied verbatim from the design spec
- * and does not change without updating docs/superpowers/specs/2026-09-04-frontend-design.md.
+ * The one interface every section implements. Each section was built against
+ * this independently, so the signature below is the contract between them and
+ * changing it means revisiting every file in src/sections/.
  *
  * The rule that makes the kill switches work:
  *

@@ -1,0 +1,114 @@
+# Builds the site and publishes it to GitHub Pages.
+#
+# The repository holds TypeScript source, not a website, so something has to
+# run the build before anything can be served. That is this file. It produces
+# frontend/dist/ and hands the folder to Pages.
+#
+# ONE MANUAL STEP IS REQUIRED, ONCE, and it cannot be done from a file in the
+# repository: Settings -> Pages -> Source -> GitHub Actions. Until that is
+# set, this workflow builds successfully and the deploy step fails, because
+# Pages will not accept an artifact it has not been told to expect.
+#
+# The published URL is https://lycanalan.github.io/Dispute-Autopilot/, which
+# is why vite.config.ts sets base: '/Dispute-Autopilot/'. A project site lives
+# under a sub-path, and a build without that prefix deploys to a page that
+# loads no CSS and no JavaScript, with no error to explain why.
+#
+# WHAT THE DEPLOYED SITE CANNOT DO. Pages serves static files. It cannot run
+# the FastAPI backend, so the two sections that call 127.0.0.1:8000 have
+# nothing to reach on a visitor's machine. They handle it: each probes /health
+# first and, when it fails, says the backend is not running and prints the
+# command to start it. Ten of the twelve sections are fully live regardless,
+# because every figure they show was baked into snapshot.json ahead of time.
+
+name: Deploy site to Pages
+
+on:
+  push:
+    branches: [main]
+    # Only rebuild when something that affects the built site changes. A
+    # commit touching only Python or docs does not need to redeploy.
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy.yml'
+  # Lets you redeploy by hand from the Actions tab without an empty commit.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race. Queue rather than cancel: cancelling a running
+# deploy can leave Pages holding a half-published artifact.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # ci, not install: it installs exactly what package-lock.json pins and
+      # fails if the lockfile and package.json disagree. A deploy is the wrong
+      # place to silently pick up a different version of anything.
+      - name: Install dependencies
+        run: npm ci
+
+      # Runs tsc --noEmit first, so a type error fails the deploy instead of
+      # publishing a broken page.
+      - name: Build
+        run: npm run build
+
+      # THE CHECK THAT MATTERS MOST HERE.
+      #
+      # core/data.ts fetches snapshot.json and falls back to
+      # snapshot.sample.json when it is missing. Every figure in the sample is
+      # -1 and every string says SAMPLE. That fallback exists so the site runs
+      # before the exporter has been run, and it is the right behaviour
+      # locally, but publishing it would put a page of -1 in front of anyone
+      # who opened the link, with no error and nothing obviously wrong.
+      #
+      # So the build refuses to ship unless the real artifacts are present and
+      # carry real values.
+      - name: Refuse to publish placeholder data
+        run: |
+          test -f dist/snapshot.json || { echo "dist/snapshot.json is missing"; exit 1; }
+          test -f dist/points.bin   || { echo "dist/points.bin is missing"; exit 1; }
+          node -e "
+            const s = require('./dist/snapshot.json');
+            if (s._sample !== undefined) throw new Error('published snapshot is the SAMPLE file');
+            if (!(s.n_total > 0)) throw new Error('n_total is ' + s.n_total + ', expected a real count');
+            if (!(s.family_a && s.family_a.pr_auc > 0)) throw new Error('family_a.pr_auc is not a real measurement');
+            console.log('snapshot ok: n_total=' + s.n_total + ' pr_auc=' + s.family_a.pr_auc);
+          "
+
+      - name: Upload the built site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

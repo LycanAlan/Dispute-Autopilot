@@ -180,6 +180,13 @@ class PipelineSection implements Section {
   private progressEl: HTMLElement | null = null;
   private barFillEl: HTMLElement | null = null;
   private rowsEl: HTMLElement | null = null;
+  private detailBodyEl: HTMLElement | null = null;
+
+  /** The record each rendered row came from. Cleared when a run restarts. */
+  private records = new Map<HTMLElement, RunRecord>();
+  /** The most recent row, shown when the pointer is not over any row. */
+  private lastRecord: RunRecord | null = null;
+  private detailTeardown: Array<() => void> = [];
   private summaryEl: HTMLElement | null = null;
   private noteEl: HTMLElement | null = null;
 
@@ -232,6 +239,21 @@ class PipelineSection implements Section {
 
             <ul class="pipeline__rows" data-rows aria-live="polite"></ul>
 
+            <!--
+              The record behind the row.
+
+              A row shows five of the nine fields the API returns, which left
+              the amount invisible: the decision is p_win times amount minus
+              ops cost, so half the arithmetic was off screen and no row could
+              explain itself. Everything the API sent is already in the
+              browser, so this costs no extra request. It also names the
+              endpoint, which the prose claimed and the screen never showed.
+            -->
+            <div class="pipeline__detail" data-detail>
+              <span class="micro pipeline__detail-endpoint">POST ${API_BASE.replace(/^https?:\/\//, '')}/run</span>
+              <span class="micro pipeline__detail-body" data-detail-body>Hover any row for the record the API returned.</span>
+            </div>
+
             <div class="pipeline__summary" data-summary></div>
           </div>
         </div>
@@ -245,8 +267,38 @@ class PipelineSection implements Section {
     this.rowsEl = root.querySelector('[data-rows]');
     this.summaryEl = root.querySelector('[data-summary]');
     this.noteEl = root.querySelector('[data-note]');
+    this.detailBodyEl = root.querySelector('[data-detail-body]');
 
     this.runButton?.addEventListener('click', this.handleRun);
+
+    // Delegated, because rows do not exist yet and there will be fifty of
+    // them. Pointer and keyboard both drive it: the rows carry tabindex, so
+    // the record is reachable without a mouse.
+    const rows = this.rowsEl;
+    if (rows) {
+      const enter = (event: Event): void => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const li = target.closest('.pipeline__row');
+        if (!(li instanceof HTMLElement)) return;
+        const record = this.records.get(li);
+        if (record) this.renderDetail(record);
+      };
+      // Falls back to the row that landed last, so the line is never empty
+      // mid-run just because the pointer moved away.
+      const leave = (): void => this.renderDetail(this.lastRecord);
+
+      rows.addEventListener('pointerover', enter);
+      rows.addEventListener('focusin', enter);
+      rows.addEventListener('pointerleave', leave);
+      rows.addEventListener('focusout', leave);
+      this.detailTeardown.push(() => {
+        rows.removeEventListener('pointerover', enter);
+        rows.removeEventListener('focusin', enter);
+        rows.removeEventListener('pointerleave', leave);
+        rows.removeEventListener('focusout', leave);
+      });
+    }
   }
 
   private handleRun = (): void => {
@@ -255,6 +307,10 @@ class PipelineSection implements Section {
     this.running = true;
     this.runButton?.setAttribute('disabled', 'true');
     this.rowsEl.replaceChildren();
+    // The elements these were keyed to are gone, so the records go with them.
+    this.records.clear();
+    this.lastRecord = null;
+    this.renderDetail(null);
     if (this.summaryEl) this.summaryEl.replaceChildren();
     this.setNote(null);
     this.processed = 0;
@@ -299,7 +355,7 @@ class PipelineSection implements Section {
     // screen is re-rendered by a new row landing.
     this.rowsEl.insertAdjacentHTML(
       'beforeend',
-      `<li class="pipeline__row">
+      `<li class="pipeline__row" tabindex="0">
         <span class="pipeline__cell pipeline__cell--id num">${r.transaction_id}</span>
         <span class="pipeline__cell pipeline__cell--p num">p ${r.p_chargeback.toFixed(3)}</span>
         <span class="pipeline__cell pipeline__cell--posture micro">${r.posture}</span>
@@ -308,7 +364,53 @@ class PipelineSection implements Section {
         <span class="pipeline__cell pipeline__cell--action ${actionClass(r.action)}">${r.action}</span>
       </li>`,
     );
+
+    // Keep the record the row came from, so hovering it can show every field
+    // the API returned rather than the five the row has room for. Keyed by
+    // element and dropped wholesale when a new run clears the list.
+    const li = this.rowsEl.lastElementChild;
+    if (li instanceof HTMLElement) this.records.set(li, r);
+
+    // During a run the panel tracks the row that just landed, so it reads as
+    // a live readout of the current record instead of sitting empty until
+    // someone hovers.
+    this.lastRecord = r;
+    this.renderDetail(r);
+
     this.rowsEl.scrollTop = this.rowsEl.scrollHeight;
+  }
+
+  /**
+   * Writes one record into the detail line. Passing null restores the hint.
+   *
+   * Every value here is printed exactly as the API sent it, with only
+   * formatting applied: no field is derived, reordered or rounded into
+   * something friendlier than the truth. w_completeness is the one that reads
+   * as a percentage rather than the 0 to 1 the API uses, which is stated in
+   * its label.
+   */
+  private renderDetail(r: RunRecord | null): void {
+    if (!this.detailBodyEl) return;
+    if (!r) {
+      this.detailBodyEl.textContent = 'Hover any row for the record the API returned.';
+      return;
+    }
+    const missing =
+      r.missing_required.length > 0 ? r.missing_required.join(', ') : 'none';
+    const pairs: Array<[string, string]> = [
+      ['txn', String(r.transaction_id)],
+      ['amount', fmtINRAbs(r.amount_inr)],
+      ['p(chargeback)', r.p_chargeback.toFixed(4)],
+      ['posture', r.posture],
+      ['evidence', (r.w_completeness * 100).toFixed(0) + '% complete'],
+      ['missing', missing],
+      ['expected value', fmtINR0(r.delta_ev_inr)],
+      ['decided in', r.elapsed_ms.toFixed(1) + ' ms'],
+      ['action', r.action],
+    ];
+    this.detailBodyEl.textContent = pairs
+      .map(([k, v]) => k + ' ' + v)
+      .join('   ');
   }
 
   private setProgress(done: number, total: number): void {
@@ -358,6 +460,10 @@ class PipelineSection implements Section {
 
   unmount(): void {
     this.runButton?.removeEventListener('click', this.handleRun);
+    for (const off of this.detailTeardown) off();
+    this.detailTeardown = [];
+    this.records.clear();
+    this.lastRecord = null;
     this.controller?.abort();
     this.controller = null;
     this.panelEl = null;
@@ -367,6 +473,7 @@ class PipelineSection implements Section {
     this.rowsEl = null;
     this.summaryEl = null;
     this.noteEl = null;
+    this.detailBodyEl = null;
   }
 }
 

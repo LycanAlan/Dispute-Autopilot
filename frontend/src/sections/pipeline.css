@@ -154,6 +154,53 @@
   font-size: var(--type-small);
 }
 
+/*
+ * The hovered row, and the record line under the list.
+ *
+ * A row shows five of the nine fields the API returns. The amount was one of
+ * the four it had no room for, which meant the money driving every
+ * expected-value decision was never on screen. Hovering a row now prints the
+ * whole record underneath, and the rows are focusable so a keyboard reaches it
+ * too.
+ */
+.pipeline__row {
+  cursor: default;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.pipeline__row:hover,
+.pipeline__row:focus-visible {
+  background: var(--charcoal-raised);
+}
+
+.pipeline__detail {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding-block: clamp(0.4rem, 1.4vh, 0.7rem);
+  border-bottom: 1px solid var(--rule-dark);
+  /* Two lines at most on a narrow panel, so the section's height does not
+   * move as the pointer travels down the list. eval/check_layout.py measures
+   * this section like every other one. */
+  min-height: 2.4rem;
+}
+
+.pipeline__detail-endpoint {
+  flex: none;
+  font-family: var(--font-mono);
+  color: var(--review);
+  letter-spacing: 0.02em;
+}
+
+.pipeline__detail-body {
+  font-family: var(--font-mono);
+  color: var(--bone-70);
+  line-height: 1.5;
+  /* Preserves the run of spaces that separates one label/value pair from the
+   * next, while still wrapping when the panel is narrow. */
+  white-space: pre-wrap;
+}
+
 .pipeline__cell {
   overflow: hidden;
   text-overflow: ellipsis;

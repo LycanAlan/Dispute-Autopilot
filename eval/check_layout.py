@@ -223,10 +223,66 @@ def main() -> int:
             page.close()
         browser.close()
 
+    # ------------------------------------------------------------ landing
+    #
+    # The state a visitor actually gets: the bare URL, no query string, no
+    # scrolling. It is checked separately because everything above uses
+    # ?still=1, and ?still=1 is precisely what hid the bug this check exists
+    # for.
+    #
+    # The hero's opacity was once a ramp over scroll progress starting at
+    # 0.03. A page loads at scroll zero, so every ramp evaluated to 0 and the
+    # first thing anyone saw was an empty charcoal screen. Every screenshot
+    # looked right, because ?still=1 calls update(1) and drew the finished
+    # title page. The state being verified was never the state being shipped.
+    print()
+    print("LANDING: the bare URL, unscrolled, is what a visitor actually gets")
+
+    landing_failures: list[str] = []
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1920, "height": 1080})
+        page.goto(args.url, wait_until="networkidle")
+        page.wait_for_timeout(2500)
+        seen = page.evaluate(
+            """() => {
+              const out = {scrollY: window.scrollY, items: []};
+              for (const sel of ['.hero__title', '.hero__subtitle',
+                                 '.hero__figures', '.hero__cue']) {
+                const el = document.querySelector(sel);
+                out.items.push({
+                  sel,
+                  found: !!el,
+                  opacity: el ? +getComputedStyle(el).opacity : 0,
+                  text: el ? el.textContent.trim().slice(0, 30) : '',
+                });
+              }
+              return out;
+            }"""
+        )
+        for item in seen["items"]:
+            if not item["found"]:
+                landing_failures.append("%s is not on the page" % item["sel"])
+            elif item["opacity"] < 0.95:
+                landing_failures.append(
+                    "%s is at opacity %.2f with the page unscrolled, so it is invisible on load"
+                    % (item["sel"], item["opacity"])
+                )
+        browser.close()
+
+    if landing_failures:
+        print("  FAIL  hero is not legible at rest")
+        for line in landing_failures:
+            print("          " + line)
+        failures.extend(landing_failures)
+    else:
+        print("  PASS  hero is fully legible at scroll 0 with no query string")
+
     if failures:
         print()
-        print("%d section/viewport combinations are clipped." % len(failures))
-        print("Content past the bottom of a sticky stage cannot be scrolled to.")
+        print("%d problem(s)." % len(failures))
+        print("Content past the bottom of a sticky stage cannot be scrolled to,")
+        print("and a hero that is transparent at scroll 0 is an empty landing page.")
         return 1
 
     print()

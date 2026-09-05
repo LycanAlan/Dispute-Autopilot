@@ -16,9 +16,26 @@
  * blending the three metric families, and the title page is the easiest
  * place in the world to blend them by accident.
  *
- * ON PURITY. update() is a pure function of progress: each line's --in is a
- * ramp over a fixed window, nothing else. update(1) lands on the finished
- * title page, which is what ?still=1 relies on.
+ * WHY THE ENTRANCE IS CSS AND NOT SCROLL PROGRESS.
+ *
+ * It was scroll progress, and that was wrong in a way worth recording. Every
+ * line's opacity was a ramp over progress, starting at 0.03. The page loads at
+ * scroll zero, hero progress is therefore exactly 0, and every ramp evaluates
+ * to 0: the first thing any visitor saw was an empty charcoal screen with a
+ * masthead. It stayed empty until they happened to scroll.
+ *
+ * It passed every check because of how it was checked. ?still=1 calls
+ * update(1), so every screenshot showed the finished title page. The state
+ * being verified was the one the animation was designed for, never the one a
+ * visitor actually lands on. It took deploying the site and opening the real
+ * URL to see it.
+ *
+ * A title page has to be legible at rest. Its entrance is a one-off on load,
+ * which is what a CSS animation is for, so that is where it lives now. The
+ * scroll position no longer decides whether the title exists.
+ *
+ * ON PURITY. update() touches nothing, so the purity contract is satisfied
+ * trivially and ?still=1 and scrubbing cannot desynchronise this section.
  */
 import { ORDER, register } from '../core/registry';
 import type { Section, Snapshot } from '../core/section';
@@ -26,24 +43,15 @@ import { fmtInt } from '../three/format';
 
 import './hero.css';
 
-/** Ramp from 0 to 1 across [a, b], flat outside it. */
-function span(p: number, a: number, b: number): number {
-  if (b <= a) return p >= b ? 1 : 0;
-  return Math.min(1, Math.max(0, (p - a) / (b - a)));
-}
-
-const FIRST = 0.03;
-const STEP = 0.075;
-const FADE = 0.11;
-
 class HeroSection implements Section {
   readonly id = 'hero';
 
-  private lines: HTMLElement[] = [];
-
   mount(root: HTMLElement, data: Snapshot): void {
     root.classList.add('on-charcoal', 'section--runway', 'hero');
-    root.style.height = '190svh';
+    // Enough runway for the title to hold while the reader starts scrolling,
+    // without a long stretch of nothing happening. It was 190svh when the
+    // section still had a scroll-driven reveal to spend it on.
+    root.style.height = '140svh';
 
     root.innerHTML = `
       <div class="section__stage">
@@ -94,20 +102,20 @@ class HeroSection implements Section {
     put('test', fmtInt(data.family_a.n_test));
     put('rate', (data.family_a.positive_rate * 100).toFixed(2) + '%');
 
-    this.lines = Array.from(root.querySelectorAll<HTMLElement>('[data-line]'));
-    this.update(0);
+    // The stagger index only feeds an animation-delay in CSS. Nothing here
+    // depends on scroll, so the title is legible the instant the page paints.
+    root.querySelectorAll<HTMLElement>('[data-line]').forEach((el, i) => {
+      el.style.setProperty('--i', String(i));
+    });
   }
 
-  update(progress: number): void {
-    for (let i = 0; i < this.lines.length; i++) {
-      const at = FIRST + i * STEP;
-      this.lines[i].style.setProperty('--in', span(progress, at, at + FADE).toFixed(3));
-    }
-  }
+  /**
+   * Deliberately empty. See the note at the top of this file: tying the title
+   * page's visibility to scroll progress is what made it invisible on load.
+   */
+  update(): void {}
 
-  unmount(): void {
-    this.lines = [];
-  }
+  unmount(): void {}
 }
 
 register({

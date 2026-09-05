@@ -4,6 +4,8 @@
 
 Razorpay AI Buildathon, Track 02 — AI Risk Manager. Author: Ali Ansari.
 
+**Live site: [lycanalan.github.io/Dispute-Autopilot](https://lycanalan.github.io/Dispute-Autopilot/)** — the whole pipeline in twelve scroll-driven sections, every figure read from the committed artifacts. Two sections call the local API and say so when it is not running; the other ten work anywhere.
+
 > **This system is defense-only.** It scores disputes and drafts grounded chargeback responses. It cannot generate, alter, or synthesise evidence for real use, and it refuses to contest — downgrading the decision to `REVIEW` — whenever the evidence it would need does not actually exist in the vault.
 
 ## What this is
@@ -217,12 +219,16 @@ Three tabs: Triage (score a transaction, watch it produce `CONTEST`/`ACCEPT`/`RE
 
 ## Demo video
 
-**Recording pending.** The link goes here once the video is uploaded.
+**Recording pending.** The link goes here once the video is uploaded. In the
+meantime the site itself is live at
+[lycanalan.github.io/Dispute-Autopilot](https://lycanalan.github.io/Dispute-Autopilot/)
+and can be scrolled instead.
 
-It is filmed entirely from the site in `frontend/`, which walks the whole
-pipeline in twelve sections. Two of those are live rather than recorded:
-section 7 recomputes the expected value as the disputed amount is dragged, and
-section 10 calls the API and scores real rows on screen.
+The video is filmed from that same site, with the API running locally so all
+twelve sections work. Two of them are live rather than recorded: section 7
+recomputes the expected value as the disputed amount is dragged, walking the
+decision from `ACCEPT` through `REVIEW` to `CONTEST`, and section 10 calls
+`POST /run` and scores real rows on screen.
 
 ## Architecture
 

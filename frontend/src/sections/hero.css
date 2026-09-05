@@ -24,13 +24,43 @@
   max-width: 52rem;
 }
 
-/* Each line is a pure function of --in, written by update(). No CSS
- * transition on top: the value already changes once per scroll frame, so a
- * transition would only add lag between the scroll and the type. */
+/*
+ * The entrance runs on load, not on scroll.
+ *
+ * These lines used to take their opacity from a --in custom property that
+ * update() computed from scroll progress. The page loads at scroll zero, where
+ * that value is exactly 0, so the title page rendered as an empty charcoal
+ * screen until the visitor scrolled. See hero.ts for the full account,
+ * including why every screenshot of it looked correct.
+ *
+ * `both` fill keeps each line at the from-state during its delay and at the
+ * to-state forever after, so nothing depends on where the page is scrolled.
+ */
 .hero__line {
-  --in: 0;
-  opacity: var(--in);
-  transform: translateY(calc((1 - var(--in)) * 14px));
+  opacity: 0;
+  animation: hero-line-in 700ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+@keyframes hero-line-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Stills, and anyone who asked for less motion, get the finished title page
+ * with no animation at all rather than a delayed one. */
+[data-still] .hero__line {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__line {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .hero__eyebrow {
